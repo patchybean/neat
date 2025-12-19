@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/patchybean/neatcli/actions/workflows/ci.yml/badge.svg)](https://github.com/patchybean/neatcli/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/patchybean/neatcli)](https://github.com/patchybean/neatcli/releases)
+[![Crates.io](https://img.shields.io/crates/v/neatcli.svg)](https://crates.io/crates/neatcli)
+[![Documentation](https://readthedocs.org/projects/neatcli/badge/?version=latest)](https://neatcli.readthedocs.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A smart CLI tool to organize and clean up messy directories, built in Rust.
