@@ -48,6 +48,10 @@ pub enum Commands {
         /// Actually execute the changes
         #[arg(long, short)]
         execute: bool,
+
+        /// Patterns to ignore (can be specified multiple times)
+        #[arg(long, short = 'I')]
+        ignore: Vec<String>,
     },
 
     /// Clean old files from a directory

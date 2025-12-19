@@ -36,6 +36,7 @@ fn main() -> Result<()> {
             by_extension,
             dry_run,
             execute,
+            ignore,
         } => {
             cmd_organize(
                 &path,
@@ -45,6 +46,7 @@ fn main() -> Result<()> {
                 dry_run,
                 execute,
                 cli.verbose,
+                ignore,
             )?;
         }
 
@@ -112,6 +114,7 @@ fn main() -> Result<()> {
 }
 
 /// Organize command handler
+#[allow(clippy::too_many_arguments)]
 fn cmd_organize(
     path: &Path,
     _by_type: bool,
@@ -120,6 +123,7 @@ fn cmd_organize(
     dry_run: bool,
     execute: bool,
     verbose: bool,
+    ignore: Vec<String>,
 ) -> Result<()> {
     // Determine mode
     let mode = if by_date {
@@ -147,11 +151,16 @@ fn cmd_organize(
         mode_name.cyan()
     );
 
+    // Load ignore patterns from .neatignore file and CLI
+    let mut ignore_patterns = scanner::load_ignore_patterns(&canonical_path);
+    ignore_patterns.extend(ignore);
+
     // Scan directory
     let options = ScanOptions {
         include_hidden: false,
         max_depth: Some(1), // Only immediate children
         follow_symlinks: false,
+        ignore_patterns,
     };
 
     let files = scan_directory(&canonical_path, &options)?;
@@ -215,6 +224,7 @@ fn cmd_clean(
             include_hidden: false,
             max_depth: None,
             follow_symlinks: false,
+            ignore_patterns: Vec::new(),
         };
 
         let files = scan_directory(&canonical_path, &options)?;
@@ -284,6 +294,7 @@ fn cmd_duplicates(
         include_hidden: false,
         max_depth: None,
         follow_symlinks: false,
+        ignore_patterns: Vec::new(),
     };
 
     let files = scan_directory(&canonical_path, &options)?;
@@ -363,6 +374,7 @@ fn cmd_stats(path: &Path) -> Result<()> {
         include_hidden: false,
         max_depth: None,
         follow_symlinks: false,
+        ignore_patterns: Vec::new(),
     };
 
     let files = scan_directory(&canonical_path, &options)?;

@@ -19,6 +19,7 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **Interactive TUI** - Visual file browser with keyboard navigation
 - **Trash Support** - Move files to system trash instead of permanent deletion
 - **Shell Completions** - Tab completion for Bash, Zsh, Fish, PowerShell
+- **Ignore Patterns** - Skip files via `.neatignore` or `-I` flag
 - **Safe by Default** - Dry-run mode lets you preview changes before executing
 
 ## 📦 Installation
@@ -61,6 +62,9 @@ neatcli organize ~/Downloads --by-date --execute
 
 # Organize by extension
 neatcli organize ~/Downloads --by-extension --execute
+
+# Ignore specific patterns
+neatcli organize ~/Downloads --by-type -I "*.log" -I "temp_*" --execute
 ```
 
 ### Find Duplicates
@@ -157,6 +161,24 @@ neatcli completions fish > ~/.config/fish/completions/neatcli.fish
 
 # PowerShell
 neatcli completions powershell > _neatcli.ps1
+```
+
+### Ignore Patterns
+
+Create a `.neatignore` file in any directory to skip files during scanning:
+
+```bash
+# .neatignore example
+*.log
+*.tmp
+temp_*
+node_modules
+.git
+```
+
+Or use the `-I` flag on command line:
+```bash
+neatcli organize . -I "*.log" -I "backup_*" --execute
 ```
 
 ## 🛡️ Safety Features

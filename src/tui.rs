@@ -95,6 +95,7 @@ impl App {
             include_hidden: false,
             max_depth: Some(1),
             follow_symlinks: false,
+            ignore_patterns: Vec::new(),
         };
 
         let canonical_path = path.canonicalize()?;
@@ -199,6 +200,7 @@ impl App {
             include_hidden: false,
             max_depth: Some(1),
             follow_symlinks: false,
+            ignore_patterns: Vec::new(),
         };
         self.files = scan_directory(&self.path, &options)?;
         self.selected.clear();

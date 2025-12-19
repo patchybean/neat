@@ -1,6 +1,7 @@
 //! File scanner - traverse directories and collect file information
 
-use std::fs;
+use std::fs::{self, File};
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -44,7 +45,7 @@ impl FileInfo {
 }
 
 /// Scanner configuration
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ScanOptions {
     /// Include hidden files (starting with .)
     pub include_hidden: bool,
@@ -52,6 +53,28 @@ pub struct ScanOptions {
     pub max_depth: Option<usize>,
     /// Follow symlinks
     pub follow_symlinks: bool,
+    /// Patterns to ignore (glob patterns like .gitignore)
+    pub ignore_patterns: Vec<String>,
+}
+
+/// Load ignore patterns from .neatignore file in the given directory
+pub fn load_ignore_patterns(dir: &Path) -> Vec<String> {
+    let ignore_file = dir.join(".neatignore");
+    if !ignore_file.exists() {
+        return Vec::new();
+    }
+
+    let file = match File::open(&ignore_file) {
+        Ok(f) => f,
+        Err(_) => return Vec::new(),
+    };
+
+    BufReader::new(file)
+        .lines()
+        .map_while(Result::ok)
+        .map(|line| line.trim().to_string())
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .collect()
 }
 
 /// Scan a directory and return file information
@@ -63,6 +86,13 @@ pub fn scan_directory(path: &Path, options: &ScanOptions) -> Result<Vec<FileInfo
     if !path.is_dir() {
         anyhow::bail!("Not a directory: {:?}", path);
     }
+
+    // Compile ignore patterns
+    let ignore_patterns: Vec<glob::Pattern> = options
+        .ignore_patterns
+        .iter()
+        .filter_map(|p| glob::Pattern::new(p).ok())
+        .collect();
 
     let mut walker = WalkDir::new(path).follow_links(options.follow_symlinks);
 
@@ -80,6 +110,14 @@ pub fn scan_directory(path: &Path, options: &ScanOptions) -> Result<Vec<FileInfo
             } else {
                 !entry.file_name().to_string_lossy().starts_with('.')
             }
+        })
+        .filter(|entry| {
+            // Check if file matches any ignore pattern
+            let file_name = entry.file_name().to_string_lossy();
+            let file_path = entry.path().to_string_lossy();
+            !ignore_patterns
+                .iter()
+                .any(|pattern| pattern.matches(&file_name) || pattern.matches(&file_path))
         })
         .filter_map(|entry| FileInfo::from_path(entry.path()).ok())
         .collect();
