@@ -17,13 +17,13 @@ jobs:
         include:
           - target: x86_64-apple-darwin
             os: macos-latest
-            name: neat-x86_64-apple-darwin
+            name: neatcli-x86_64-apple-darwin
           - target: aarch64-apple-darwin
             os: macos-latest
-            name: neat-aarch64-apple-darwin
+            name: neatcli-aarch64-apple-darwin
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            name: neat-x86_64-unknown-linux-gnu
+            name: neatcli-x86_64-unknown-linux-gnu
 
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +39,7 @@ jobs:
       - name: Create archive
         run: |
           cd target/${{ matrix.target }}/release
-          tar -czvf ../../../${{ matrix.name }}.tar.gz neat
+          tar -czvf ../../../${{ matrix.name }}.tar.gz neatcli
           cd ../../..
 
       - name: Upload artifact

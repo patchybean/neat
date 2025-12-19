@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 /// Neat - A smart CLI tool to organize and clean up messy directories
 #[derive(Parser)]
-#[command(name = "neat")]
+#[command(name = "neatcli")]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
 pub struct Cli {

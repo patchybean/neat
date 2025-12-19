@@ -13,7 +13,7 @@ echo "Updating Homebrew formula for version $VERSION..."
 PLATFORMS=("aarch64-apple-darwin" "x86_64-apple-darwin" "x86_64-unknown-linux-gnu")
 
 for platform in "${PLATFORMS[@]}"; do
-    URL="https://github.com/$REPO/releases/download/$VERSION/neat-$platform.tar.gz"
+    URL="https://github.com/$REPO/releases/download/$VERSION/neatcli-$platform.tar.gz"
     echo "Downloading $URL..."
     
     SHA=$(curl -sL "$URL" | shasum -a 256 | cut -d' ' -f1)
@@ -21,5 +21,5 @@ for platform in "${PLATFORMS[@]}"; do
 done
 
 echo ""
-echo "Update the homebrew/neat.rb file with these SHA256 values"
+echo "Update the homebrew/neatcli.rb file with these SHA256 values"
 echo "Then push to your homebrew-tap repository"

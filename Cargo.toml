@@ -1,5 +1,5 @@
 [package]
-name = "neat"
+name = "neatcli"
 version = "0.1.0"
 edition = "2021"
 description = "A smart CLI tool to organize and clean up messy directories"
@@ -26,5 +26,5 @@ notify = "7.0"
 notify-debouncer-mini = "0.5"
 
 [[bin]]
-name = "neat"
+name = "neatcli"
 path = "src/main.rs"

@@ -1,4 +1,4 @@
-# 🧹 Neat
+# 🧹 neatcli
 
 A smart CLI tool to organize and clean up messy directories, built in Rust.
 
@@ -9,24 +9,33 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **Organize by Extension** - Group files by their extensions
 - **Find Duplicates** - Detect duplicate files using SHA256 content hashing
 - **Clean Old Files** - Remove files older than a specified duration
+- **Watch Mode** - Auto-organize new files as they appear
+- **Custom Rules** - Define your own organization rules via TOML config
 - **Undo Operations** - Rollback your last operation
 - **Safe by Default** - Dry-run mode lets you preview changes before executing
 
 ## 📦 Installation
 
-### From source
+### Using Homebrew
 
 ```bash
-git clone https://github.com/yourname/neat
-cd neat
-cargo build --release
-sudo cp target/release/neat /usr/local/bin/
+brew tap patchybean/tap
+brew install neatcli
 ```
 
 ### Using Cargo
 
 ```bash
-cargo install neat
+cargo install neatcli
+```
+
+### From source
+
+```bash
+git clone https://github.com/patchybean/neat
+cd neat
+cargo build --release
+sudo cp target/release/neatcli /usr/local/bin/
 ```
 
 ## 🚀 Usage
@@ -35,79 +44,79 @@ cargo install neat
 
 ```bash
 # Organize by type (preview only - safe)
-neat organize ~/Downloads --by-type
+neatcli organize ~/Downloads --by-type
 
 # Actually execute the organization
-neat organize ~/Downloads --by-type --execute
+neatcli organize ~/Downloads --by-type --execute
 
 # Organize by date (YYYY/MM structure)
-neat organize ~/Downloads --by-date --execute
+neatcli organize ~/Downloads --by-date --execute
 
 # Organize by extension
-neat organize ~/Downloads --by-extension --execute
+neatcli organize ~/Downloads --by-extension --execute
 ```
 
 ### Find Duplicates
 
 ```bash
 # Find duplicate files
-neat duplicates ~/Downloads
+neatcli duplicates ~/Downloads
 
 # Find and delete duplicates
-neat duplicates ~/Downloads --delete --execute
+neatcli duplicates ~/Downloads --delete --execute
 ```
 
 ### Clean Old Files
 
 ```bash
 # Preview files older than 30 days
-neat clean ~/Downloads --older-than 30d
+neatcli clean ~/Downloads --older-than 30d
 
 # Delete files older than 7 days
-neat clean ~/Downloads --older-than 7d --execute
+neatcli clean ~/Downloads --older-than 7d --execute
 
 # Remove empty folders
-neat clean ~/Downloads --empty-folders --execute
+neatcli clean ~/Downloads --empty-folders --execute
 ```
 
 ### Statistics
 
 ```bash
 # Show directory statistics
-neat stats ~/Downloads
+neatcli stats ~/Downloads
 ```
 
 ### Undo
 
 ```bash
 # Undo the last operation
-neat undo
+neatcli undo
 
 # View operation history
-neat history
+neatcli history
 ```
 
 ### Watch Mode (Auto-organize)
 
 ```bash
 # Watch directory for new files (preview mode)
-neat watch ~/Downloads
+neatcli watch ~/Downloads
 
 # Auto-organize new files
-neat watch ~/Downloads --auto
+neatcli watch ~/Downloads --auto
 
 # Use custom rules
-neat watch ~/Downloads --config ~/.neat/config.toml --auto
+neatcli watch ~/Downloads --config ~/.neat/config.toml --auto
 ```
 
 ### Custom Rules
 
 ```bash
 # Create a sample config file
-neat config init
+neatcli config init
 
 # Show current configuration
-neat config show
+neatcli config show
 ```
 
 Sample `~/.neat/config.toml`:
@@ -129,7 +138,7 @@ priority = 5
 
 1. **Dry-run by default** - All operations preview changes first
 2. **Confirmation prompts** - Destructive operations require confirmation
-3. **Undo capability** - Rollback file moves with `neat undo`
+3. **Undo capability** - Rollback file moves with `neatcli undo`
 4. **Operation logging** - All operations are logged to `~/.neat/history.json`
 
 ## 📁 File Categories
@@ -147,7 +156,7 @@ priority = 5
 ## 📋 Command Reference
 
 ```
-neat [OPTIONS] <COMMAND>
+neatcli [OPTIONS] <COMMAND>
 
 Commands:
   organize    Organize files by type or date
