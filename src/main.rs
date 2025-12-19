@@ -43,6 +43,8 @@ fn main() -> Result<()> {
             dry_run,
             execute,
             ignore,
+            min_size,
+            max_size,
         } => {
             cmd_organize(
                 &path,
@@ -57,6 +59,8 @@ fn main() -> Result<()> {
                 execute,
                 cli.verbose,
                 ignore,
+                min_size,
+                max_size,
             )?;
         }
 
@@ -67,8 +71,19 @@ fn main() -> Result<()> {
             dry_run,
             execute,
             trash,
+            min_size,
+            max_size,
         } => {
-            cmd_clean(&path, older_than, empty_folders, dry_run, execute, trash)?;
+            cmd_clean(
+                &path,
+                older_than,
+                empty_folders,
+                dry_run,
+                execute,
+                trash,
+                min_size,
+                max_size,
+            )?;
         }
 
         Commands::Duplicates {
@@ -77,8 +92,10 @@ fn main() -> Result<()> {
             dry_run,
             execute,
             trash,
+            min_size,
+            max_size,
         } => {
-            cmd_duplicates(&path, delete, dry_run, execute, trash)?;
+            cmd_duplicates(&path, delete, dry_run, execute, trash, min_size, max_size)?;
         }
 
         Commands::Similar {
@@ -149,7 +166,11 @@ fn cmd_organize(
     execute: bool,
     verbose: bool,
     ignore: Vec<String>,
+    min_size: Option<String>,
+    max_size: Option<String>,
 ) -> Result<()> {
+    use crate::scanner::parse_size;
+
     // Determine mode
     let mode = if by_date {
         OrganizeMode::ByDate
@@ -188,6 +209,16 @@ fn cmd_organize(
         mode_name.cyan()
     );
 
+    // Parse size filters
+    let min_size_bytes = min_size
+        .map(|s| parse_size(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    let max_size_bytes = max_size
+        .map(|s| parse_size(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
     // Load ignore patterns from .neatignore file and CLI
     let mut ignore_patterns = scanner::load_ignore_patterns(&canonical_path);
     ignore_patterns.extend(ignore);
@@ -198,6 +229,8 @@ fn cmd_organize(
         max_depth: Some(1), // Only immediate children
         follow_symlinks: false,
         ignore_patterns,
+        min_size: min_size_bytes,
+        max_size: max_size_bytes,
     };
 
     let files = scan_directory(&canonical_path, &options)?;
@@ -235,6 +268,7 @@ fn cmd_organize(
 }
 
 /// Clean command handler
+#[allow(clippy::too_many_arguments)]
 fn cmd_clean(
     path: &Path,
     older_than: Option<String>,
@@ -242,10 +276,24 @@ fn cmd_clean(
     dry_run: bool,
     execute: bool,
     use_trash: bool,
+    min_size: Option<String>,
+    max_size: Option<String>,
 ) -> Result<()> {
+    use crate::scanner::parse_size;
+
     let canonical_path = path
         .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
+
+    // Parse size filters
+    let min_size_bytes = min_size
+        .map(|s| parse_size(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    let max_size_bytes = max_size
+        .map(|s| parse_size(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     if let Some(duration_str) = older_than {
         let duration = cleaner::parse_duration(&duration_str)?;
@@ -262,6 +310,8 @@ fn cmd_clean(
             max_depth: None,
             follow_symlinks: false,
             ignore_patterns: Vec::new(),
+            min_size: min_size_bytes,
+            max_size: max_size_bytes,
         };
 
         let files = scan_directory(&canonical_path, &options)?;
@@ -316,10 +366,24 @@ fn cmd_duplicates(
     dry_run: bool,
     execute: bool,
     use_trash: bool,
+    min_size: Option<String>,
+    max_size: Option<String>,
 ) -> Result<()> {
+    use crate::scanner::parse_size;
+
     let canonical_path = path
         .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
+
+    // Parse size filters
+    let min_size_bytes = min_size
+        .map(|s| parse_size(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    let max_size_bytes = max_size
+        .map(|s| parse_size(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     println!(
         "{} Scanning {} for duplicate files...",
@@ -332,6 +396,8 @@ fn cmd_duplicates(
         max_depth: None,
         follow_symlinks: false,
         ignore_patterns: Vec::new(),
+        min_size: min_size_bytes,
+        max_size: max_size_bytes,
     };
 
     let files = scan_directory(&canonical_path, &options)?;
@@ -417,6 +483,8 @@ fn cmd_similar(
         max_depth: None,
         follow_symlinks: false,
         ignore_patterns: Vec::new(),
+        min_size: None,
+        max_size: None,
     };
 
     let files = scan_directory(&canonical_path, &options)?;
@@ -508,6 +576,8 @@ fn cmd_stats(path: &Path) -> Result<()> {
         max_depth: None,
         follow_symlinks: false,
         ignore_patterns: Vec::new(),
+        min_size: None,
+        max_size: None,
     };
 
     let files = scan_directory(&canonical_path, &options)?;

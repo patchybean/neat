@@ -55,6 +55,10 @@ pub struct ScanOptions {
     pub follow_symlinks: bool,
     /// Patterns to ignore (glob patterns like .gitignore)
     pub ignore_patterns: Vec<String>,
+    /// Minimum file size in bytes (None = no minimum)
+    pub min_size: Option<u64>,
+    /// Maximum file size in bytes (None = no maximum)
+    pub max_size: Option<u64>,
 }
 
 /// Load ignore patterns from .neatignore file in the given directory
@@ -120,6 +124,20 @@ pub fn scan_directory(path: &Path, options: &ScanOptions) -> Result<Vec<FileInfo
                 .any(|pattern| pattern.matches(&file_name) || pattern.matches(&file_path))
         })
         .filter_map(|entry| FileInfo::from_path(entry.path()).ok())
+        // Apply size filters
+        .filter(|file| {
+            if let Some(min) = options.min_size {
+                if file.size < min {
+                    return false;
+                }
+            }
+            if let Some(max) = options.max_size {
+                if file.size > max {
+                    return false;
+                }
+            }
+            true
+        })
         .collect();
 
     Ok(files)
@@ -145,6 +163,51 @@ pub fn format_size(bytes: u64) -> String {
     } else {
         format!("{} B", bytes)
     }
+}
+
+/// Parse a human-readable size string to bytes
+/// Examples: "10MB", "1.5GB", "500KB", "1024", "100B"
+pub fn parse_size(s: &str) -> Result<u64, String> {
+    let s = s.trim().to_uppercase();
+
+    const KB: u64 = 1024;
+    const MB: u64 = KB * 1024;
+    const GB: u64 = MB * 1024;
+    const TB: u64 = GB * 1024;
+
+    // Try to find the unit suffix
+    let (num_str, multiplier) = if s.ends_with("TB") {
+        (&s[..s.len() - 2], TB)
+    } else if s.ends_with("GB") {
+        (&s[..s.len() - 2], GB)
+    } else if s.ends_with("MB") {
+        (&s[..s.len() - 2], MB)
+    } else if s.ends_with("KB") {
+        (&s[..s.len() - 2], KB)
+    } else if s.ends_with("B") {
+        (&s[..s.len() - 1], 1)
+    } else if s.ends_with("T") {
+        (&s[..s.len() - 1], TB)
+    } else if s.ends_with("G") {
+        (&s[..s.len() - 1], GB)
+    } else if s.ends_with("M") {
+        (&s[..s.len() - 1], MB)
+    } else if s.ends_with("K") {
+        (&s[..s.len() - 1], KB)
+    } else {
+        (s.as_str(), 1) // No suffix, assume bytes
+    };
+
+    let num: f64 = num_str
+        .trim()
+        .parse()
+        .map_err(|_| format!("Invalid size format: {}", s))?;
+
+    if num < 0.0 {
+        return Err("Size cannot be negative".to_string());
+    }
+
+    Ok((num * multiplier as f64) as u64)
 }
 
 #[cfg(test)]

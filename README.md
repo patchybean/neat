@@ -114,6 +114,23 @@ neatcli similar ~/Photos --delete --execute
 neatcli similar ~/Photos --delete --trash --execute
 ```
 
+### Filter by Size
+
+You can filter files by size in `organize`, `clean`, and `duplicates` commands using `--min-size` and `--max-size`.
+
+Supported units: B, KB, MB, GB, TB
+
+```bash
+# Organize only large files (> 1GB)
+neatcli organize ~/Downloads --min-size 1GB
+
+# Clean small log files (< 10KB)
+neatcli clean ~/Logs --max-size 10KB --exec
+
+# Find duplicates among large videos only
+neatcli duplicates ~/Movies --min-size 500MB
+```
+
 ### Clean Old Files
 
 ```bash

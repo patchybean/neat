@@ -112,6 +112,8 @@ impl App {
             max_depth: Some(1),
             follow_symlinks: false,
             ignore_patterns: Vec::new(),
+            min_size: None,
+            max_size: None,
         };
 
         let canonical_path = path.canonicalize()?;
@@ -217,6 +219,8 @@ impl App {
             max_depth: Some(1),
             follow_symlinks: false,
             ignore_patterns: Vec::new(),
+            min_size: None,
+            max_size: None,
         };
         self.files = scan_directory(&self.path, &options)?;
         self.selected.clear();

@@ -68,6 +68,14 @@ pub enum Commands {
         /// Patterns to ignore (can be specified multiple times)
         #[arg(long, short = 'I')]
         ignore: Vec<String>,
+
+        /// Minimum file size to include (e.g., 1MB, 10KB, 1G)
+        #[arg(long)]
+        min_size: Option<String>,
+
+        /// Maximum file size to include (e.g., 100MB, 1GB)
+        #[arg(long)]
+        max_size: Option<String>,
     },
 
     /// Clean old files from a directory
@@ -95,6 +103,14 @@ pub enum Commands {
         /// Move files to trash instead of permanent deletion
         #[arg(long)]
         trash: bool,
+
+        /// Minimum file size to include (e.g., 1MB, 10KB)
+        #[arg(long)]
+        min_size: Option<String>,
+
+        /// Maximum file size to include (e.g., 100MB, 1GB)
+        #[arg(long)]
+        max_size: Option<String>,
     },
 
     /// Find duplicate files by content
@@ -118,6 +134,14 @@ pub enum Commands {
         /// Move duplicates to trash instead of permanent deletion
         #[arg(long)]
         trash: bool,
+
+        /// Minimum file size to include (e.g., 1MB, 10KB)
+        #[arg(long)]
+        min_size: Option<String>,
+
+        /// Maximum file size to include (e.g., 100MB, 1GB)
+        #[arg(long)]
+        max_size: Option<String>,
     },
 
     /// Find visually similar images using perceptual hashing
