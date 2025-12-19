@@ -3,11 +3,13 @@
 mod classifier;
 mod cleaner;
 mod cli;
+mod config;
 mod duplicates;
 mod error;
 mod logger;
 mod organizer;
 mod scanner;
+mod watcher;
 
 use std::fs;
 use std::path::Path;
@@ -16,7 +18,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use colored::*;
 
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, ConfigAction};
 use crate::duplicates::{display_duplicates, find_duplicates};
 use crate::logger::{History, OperationType};
 use crate::organizer::{execute_moves, plan_moves, preview_moves, print_results, OrganizeMode};
@@ -66,6 +68,21 @@ fn main() -> Result<()> {
 
         Commands::History => {
             cmd_history()?;
+        }
+
+        Commands::Watch {
+            path,
+            by_type,
+            by_date,
+            by_extension,
+            config,
+            auto,
+        } => {
+            cmd_watch(&path, by_type, by_date, by_extension, config, auto)?;
+        }
+
+        Commands::Config { action } => {
+            cmd_config(action)?;
         }
     }
 
@@ -475,6 +492,138 @@ fn cmd_history() -> Result<()> {
             batch.command.cyan(),
             batch.operations.len()
         );
+    }
+
+    Ok(())
+}
+
+/// Watch command handler
+fn cmd_watch(
+    path: &Path,
+    _by_type: bool,
+    by_date: bool,
+    by_extension: bool,
+    config_path: Option<std::path::PathBuf>,
+    auto: bool,
+) -> Result<()> {
+    use crate::config::Config as NeatConfig;
+
+    // Determine mode
+    let mode = if by_date {
+        OrganizeMode::ByDate
+    } else if by_extension {
+        OrganizeMode::ByExtension
+    } else {
+        OrganizeMode::ByType // Default
+    };
+
+    // Load config if specified
+    let config = if let Some(cfg_path) = config_path {
+        Some(NeatConfig::load(&cfg_path)?)
+    } else {
+        NeatConfig::load_default()?
+    };
+
+    watcher::watch_directory(path, mode, config.as_ref(), auto)
+}
+
+/// Config command handler
+fn cmd_config(action: ConfigAction) -> Result<()> {
+    use crate::config::Config as NeatConfig;
+
+    match action {
+        ConfigAction::Init { path } => {
+            let config_path = path.unwrap_or_else(|| {
+                dirs::home_dir()
+                    .unwrap_or_default()
+                    .join(".neat")
+                    .join("config.toml")
+            });
+
+            if config_path.exists() {
+                println!(
+                    "{} Config file already exists: {}",
+                    "⚠".yellow(),
+                    config_path.display()
+                );
+                
+                let overwrite = dialoguer::Confirm::new()
+                    .with_prompt("Overwrite?")
+                    .default(false)
+                    .interact()?;
+
+                if !overwrite {
+                    println!("{}", "Cancelled.".yellow());
+                    return Ok(());
+                }
+            }
+
+            NeatConfig::create_sample(&config_path)?;
+            println!(
+                "{} Created config file: {}",
+                "✓".green(),
+                config_path.display().to_string().cyan()
+            );
+            println!("\nSample rules:");
+            println!("  {} Invoices: *invoice*.pdf → Documents/Invoices/{{year}}", "•".dimmed());
+            println!("  {} Screenshots: Screenshot*.png → Images/Screenshots/{{year}}-{{month}}", "•".dimmed());
+        }
+
+        ConfigAction::Show { path } => {
+            let config_path = path.unwrap_or_else(|| {
+                dirs::home_dir()
+                    .unwrap_or_default()
+                    .join(".neat")
+                    .join("config.toml")
+            });
+
+            if !config_path.exists() {
+                println!(
+                    "{} Config file not found: {}",
+                    "✗".red(),
+                    config_path.display()
+                );
+                println!(
+                    "  {} Run {} to create one",
+                    "ℹ".blue(),
+                    "neat config init".yellow()
+                );
+                return Ok(());
+            }
+
+            let config = NeatConfig::load(&config_path)?;
+            
+            println!(
+                "{} Config: {}\n",
+                "→".cyan(),
+                config_path.display().to_string().bold()
+            );
+
+            if config.rules.is_empty() {
+                println!("{}", "No rules defined.".yellow());
+            } else {
+                println!("{}", "Rules:".bold());
+                println!("{}", "─".repeat(60));
+                
+                for rule in &config.rules {
+                    println!(
+                        "  {} {} (priority: {})",
+                        "•".cyan(),
+                        rule.name.bold(),
+                        rule.priority
+                    );
+                    println!("    Pattern: {}", rule.pattern.yellow());
+                    println!("    Dest:    {}", rule.destination.green());
+                    println!();
+                }
+            }
+
+            println!("{}", "Settings:".bold());
+            println!("{}", "─".repeat(60));
+            println!("  Include hidden: {}", config.settings.include_hidden);
+            println!("  Follow symlinks: {}", config.settings.follow_symlinks);
+            println!("  Default mode: {}", config.settings.default_organize_mode);
+        }
     }
 
     Ok(())

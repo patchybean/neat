@@ -104,4 +104,54 @@ pub enum Commands {
 
     /// Show operation history
     History,
+
+    /// Watch a directory and auto-organize new files
+    Watch {
+        /// Target directory to watch
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// Organize files by their type (default)
+        #[arg(long, group = "organize_mode")]
+        by_type: bool,
+
+        /// Organize files by date
+        #[arg(long, group = "organize_mode")]
+        by_date: bool,
+
+        /// Organize files by extension
+        #[arg(long, group = "organize_mode")]
+        by_extension: bool,
+
+        /// Use custom rules from config file
+        #[arg(long, short)]
+        config: Option<PathBuf>,
+
+        /// Automatically move files (otherwise just preview)
+        #[arg(long, short)]
+        auto: bool,
+    },
+
+    /// Manage configuration
+    Config {
+        #[command(subcommand)]
+        action: ConfigAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ConfigAction {
+    /// Create a sample configuration file
+    Init {
+        /// Path to create config file (default: ~/.neat/config.toml)
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+    },
+
+    /// Show current configuration
+    Show {
+        /// Path to config file
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+    },
 }

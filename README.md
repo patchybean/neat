@@ -87,6 +87,44 @@ neat undo
 neat history
 ```
 
+### Watch Mode (Auto-organize)
+
+```bash
+# Watch directory for new files (preview mode)
+neat watch ~/Downloads
+
+# Auto-organize new files
+neat watch ~/Downloads --auto
+
+# Use custom rules
+neat watch ~/Downloads --config ~/.neat/config.toml --auto
+```
+
+### Custom Rules
+
+```bash
+# Create a sample config file
+neat config init
+
+# Show current configuration
+neat config show
+```
+
+Sample `~/.neat/config.toml`:
+```toml
+[[rules]]
+name = "Invoices"
+pattern = "*invoice*.pdf"
+destination = "Documents/Invoices/{year}"
+priority = 10
+
+[[rules]]
+name = "Screenshots"
+pattern = "Screenshot*.png"
+destination = "Images/Screenshots/{year}-{month}"
+priority = 5
+```
+
 ## 🛡️ Safety Features
 
 1. **Dry-run by default** - All operations preview changes first
@@ -118,6 +156,8 @@ Commands:
   stats       Show statistics about a directory
   undo        Undo the last operation
   history     Show operation history
+  watch       Watch directory and auto-organize new files
+  config      Manage configuration (init, show)
   help        Print help
 
 Options:
