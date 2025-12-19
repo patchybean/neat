@@ -142,6 +142,8 @@ mod tests {
         assert_eq!(classifier.classify(Some("jpg")), Category::Images);
         assert_eq!(classifier.classify(Some("PNG")), Category::Images);
         assert_eq!(classifier.classify(Some("gif")), Category::Images);
+        assert_eq!(classifier.classify(Some("webp")), Category::Images);
+        assert_eq!(classifier.classify(Some("heic")), Category::Images);
     }
 
     #[test]
@@ -149,12 +151,95 @@ mod tests {
         let classifier = Classifier::new();
         assert_eq!(classifier.classify(Some("pdf")), Category::Documents);
         assert_eq!(classifier.classify(Some("docx")), Category::Documents);
+        assert_eq!(classifier.classify(Some("txt")), Category::Documents);
+        assert_eq!(classifier.classify(Some("md")), Category::Documents);
+        assert_eq!(classifier.classify(Some("epub")), Category::Documents);
+    }
+
+    #[test]
+    fn test_classify_videos() {
+        let classifier = Classifier::new();
+        assert_eq!(classifier.classify(Some("mp4")), Category::Videos);
+        assert_eq!(classifier.classify(Some("avi")), Category::Videos);
+        assert_eq!(classifier.classify(Some("mkv")), Category::Videos);
+        assert_eq!(classifier.classify(Some("mov")), Category::Videos);
+        assert_eq!(classifier.classify(Some("webm")), Category::Videos);
+    }
+
+    #[test]
+    fn test_classify_audio() {
+        let classifier = Classifier::new();
+        assert_eq!(classifier.classify(Some("mp3")), Category::Audio);
+        assert_eq!(classifier.classify(Some("wav")), Category::Audio);
+        assert_eq!(classifier.classify(Some("flac")), Category::Audio);
+        assert_eq!(classifier.classify(Some("m4a")), Category::Audio);
+        assert_eq!(classifier.classify(Some("opus")), Category::Audio);
+    }
+
+    #[test]
+    fn test_classify_archives() {
+        let classifier = Classifier::new();
+        assert_eq!(classifier.classify(Some("zip")), Category::Archives);
+        assert_eq!(classifier.classify(Some("tar")), Category::Archives);
+        assert_eq!(classifier.classify(Some("rar")), Category::Archives);
+        assert_eq!(classifier.classify(Some("7z")), Category::Archives);
+        assert_eq!(classifier.classify(Some("dmg")), Category::Archives);
+    }
+
+    #[test]
+    fn test_classify_code() {
+        let classifier = Classifier::new();
+        assert_eq!(classifier.classify(Some("rs")), Category::Code);
+        assert_eq!(classifier.classify(Some("py")), Category::Code);
+        assert_eq!(classifier.classify(Some("js")), Category::Code);
+        assert_eq!(classifier.classify(Some("ts")), Category::Code);
+        assert_eq!(classifier.classify(Some("go")), Category::Code);
+        assert_eq!(classifier.classify(Some("html")), Category::Code);
+    }
+
+    #[test]
+    fn test_classify_data() {
+        let classifier = Classifier::new();
+        assert_eq!(classifier.classify(Some("json")), Category::Data);
+        assert_eq!(classifier.classify(Some("xml")), Category::Data);
+        assert_eq!(classifier.classify(Some("yaml")), Category::Data);
+        assert_eq!(classifier.classify(Some("toml")), Category::Data);
+        assert_eq!(classifier.classify(Some("sql")), Category::Data);
     }
 
     #[test]
     fn test_classify_unknown() {
         let classifier = Classifier::new();
         assert_eq!(classifier.classify(Some("xyz")), Category::Other);
+        assert_eq!(classifier.classify(Some("unknown")), Category::Other);
         assert_eq!(classifier.classify(None), Category::Other);
+    }
+
+    #[test]
+    fn test_classify_case_insensitive() {
+        let classifier = Classifier::new();
+        assert_eq!(classifier.classify(Some("PDF")), Category::Documents);
+        assert_eq!(classifier.classify(Some("Mp3")), Category::Audio);
+        assert_eq!(classifier.classify(Some("JSON")), Category::Data);
+    }
+
+    #[test]
+    fn test_category_folder_names() {
+        assert_eq!(Category::Images.folder_name(), "Images");
+        assert_eq!(Category::Documents.folder_name(), "Documents");
+        assert_eq!(Category::Videos.folder_name(), "Videos");
+        assert_eq!(Category::Audio.folder_name(), "Audio");
+        assert_eq!(Category::Archives.folder_name(), "Archives");
+        assert_eq!(Category::Code.folder_name(), "Code");
+        assert_eq!(Category::Data.folder_name(), "Data");
+        assert_eq!(Category::Other.folder_name(), "Other");
+    }
+
+    #[test]
+    fn test_category_all() {
+        let all = Category::all();
+        assert_eq!(all.len(), 8);
+        assert!(all.contains(&Category::Images));
+        assert!(all.contains(&Category::Other));
     }
 }

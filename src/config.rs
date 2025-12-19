@@ -198,4 +198,133 @@ mod tests {
         assert!(rule.matches("my_invoice.pdf"));
         assert!(!rule.matches("invoice.txt"));
     }
+
+    #[test]
+    fn test_rule_get_destination_simple() {
+        let rule = Rule {
+            name: "Test".to_string(),
+            pattern: "*.pdf".to_string(),
+            destination: "Documents".to_string(),
+            priority: 0,
+        };
+
+        let base = PathBuf::from("/home/user");
+        let result = rule.get_destination(&base, "file.pdf", Some("pdf"));
+        assert_eq!(result, PathBuf::from("/home/user/Documents/file.pdf"));
+    }
+
+    #[test]
+    fn test_rule_get_destination_with_ext_template() {
+        let rule = Rule {
+            name: "Test".to_string(),
+            pattern: "*".to_string(),
+            destination: "Files/{ext}".to_string(),
+            priority: 0,
+        };
+
+        let base = PathBuf::from("/base");
+        let result = rule.get_destination(&base, "doc.pdf", Some("pdf"));
+        assert_eq!(result, PathBuf::from("/base/Files/pdf/doc.pdf"));
+    }
+
+    #[test]
+    fn test_rule_get_destination_no_extension() {
+        let rule = Rule {
+            name: "Test".to_string(),
+            pattern: "*".to_string(),
+            destination: "Files/{ext}".to_string(),
+            priority: 0,
+        };
+
+        let base = PathBuf::from("/base");
+        let result = rule.get_destination(&base, "Makefile", None);
+        assert_eq!(result, PathBuf::from("/base/Files/unknown/Makefile"));
+    }
+
+    #[test]
+    fn test_get_sorted_rules_by_priority() {
+        let config = Config {
+            rules: vec![
+                Rule {
+                    name: "Low".to_string(),
+                    pattern: "*".to_string(),
+                    destination: "low".to_string(),
+                    priority: 0,
+                },
+                Rule {
+                    name: "High".to_string(),
+                    pattern: "*".to_string(),
+                    destination: "high".to_string(),
+                    priority: 10,
+                },
+                Rule {
+                    name: "Medium".to_string(),
+                    pattern: "*".to_string(),
+                    destination: "medium".to_string(),
+                    priority: 5,
+                },
+            ],
+            settings: Settings::default(),
+        };
+
+        let sorted = config.get_sorted_rules();
+        assert_eq!(sorted[0].name, "High");
+        assert_eq!(sorted[1].name, "Medium");
+        assert_eq!(sorted[2].name, "Low");
+    }
+
+    #[test]
+    fn test_find_matching_rule() {
+        let config = Config {
+            rules: vec![
+                Rule {
+                    name: "PDFs".to_string(),
+                    pattern: "*.pdf".to_string(),
+                    destination: "Documents".to_string(),
+                    priority: 5,
+                },
+                Rule {
+                    name: "Everything".to_string(),
+                    pattern: "*".to_string(),
+                    destination: "Other".to_string(),
+                    priority: 0,
+                },
+            ],
+            settings: Settings::default(),
+        };
+
+        // PDF should match the PDF rule (higher priority)
+        let pdf_rule = config.find_matching_rule("report.pdf");
+        assert!(pdf_rule.is_some());
+        assert_eq!(pdf_rule.unwrap().name, "PDFs");
+
+        // Non-PDF should match the catchall
+        let other_rule = config.find_matching_rule("image.png");
+        assert!(other_rule.is_some());
+        assert_eq!(other_rule.unwrap().name, "Everything");
+    }
+
+    #[test]
+    fn test_find_matching_rule_none() {
+        let config = Config {
+            rules: vec![Rule {
+                name: "PDFs only".to_string(),
+                pattern: "*.pdf".to_string(),
+                destination: "Documents".to_string(),
+                priority: 0,
+            }],
+            settings: Settings::default(),
+        };
+
+        let result = config.find_matching_rule("image.png");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_settings_default() {
+        let settings = Settings::default();
+        assert!(!settings.include_hidden);
+        assert!(!settings.follow_symlinks);
+        assert_eq!(settings.default_organize_mode, "by-type");
+    }
 }

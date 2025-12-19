@@ -259,6 +259,7 @@ fn format_age(duration: Duration) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::tempdir;
 
     #[test]
     fn test_parse_duration_days() {
@@ -276,5 +277,124 @@ mod tests {
     fn test_parse_duration_hours() {
         let d = parse_duration("24h").unwrap();
         assert_eq!(d, Duration::from_secs(24 * 3600));
+    }
+
+    #[test]
+    fn test_parse_duration_no_unit_defaults_to_days() {
+        let d = parse_duration("5").unwrap();
+        assert_eq!(d, Duration::from_secs(5 * 86400));
+    }
+
+    #[test]
+    fn test_parse_duration_with_whitespace() {
+        let d = parse_duration("  7d  ").unwrap();
+        assert_eq!(d, Duration::from_secs(7 * 86400));
+    }
+
+    #[test]
+    fn test_parse_duration_empty_fails() {
+        assert!(parse_duration("").is_err());
+        assert!(parse_duration("   ").is_err());
+    }
+
+    #[test]
+    fn test_parse_duration_invalid_fails() {
+        assert!(parse_duration("abc").is_err());
+        assert!(parse_duration("d").is_err());
+    }
+
+    #[test]
+    fn test_find_old_files_empty() {
+        let files: Vec<FileInfo> = vec![];
+        let old = find_old_files(&files, Duration::from_secs(86400));
+        assert!(old.is_empty());
+    }
+
+    #[test]
+    fn test_find_old_files_filters_correctly() {
+        let now = SystemTime::now();
+        let old_time = now - Duration::from_secs(86400 * 10); // 10 days ago
+        let new_time = now - Duration::from_secs(3600); // 1 hour ago
+
+        let files = vec![
+            FileInfo {
+                name: "old.txt".to_string(),
+                path: std::path::PathBuf::from("/tmp/old.txt"),
+                size: 100,
+                extension: Some("txt".to_string()),
+                modified: old_time,
+                created: None,
+            },
+            FileInfo {
+                name: "new.txt".to_string(),
+                path: std::path::PathBuf::from("/tmp/new.txt"),
+                size: 100,
+                extension: Some("txt".to_string()),
+                modified: new_time,
+                created: None,
+            },
+        ];
+
+        let old_files = find_old_files(&files, Duration::from_secs(86400 * 5)); // 5 days
+        assert_eq!(old_files.len(), 1);
+        assert_eq!(old_files[0].name, "old.txt");
+    }
+
+    #[test]
+    fn test_find_empty_dirs_empty_directory() {
+        let dir = tempdir().unwrap();
+        let empty_dir = dir.path().join("empty");
+        fs::create_dir(&empty_dir).unwrap();
+
+        let result = find_empty_dirs(dir.path()).unwrap();
+        assert!(result.contains(&empty_dir));
+    }
+
+    #[test]
+    fn test_find_empty_dirs_non_empty() {
+        let dir = tempdir().unwrap();
+        let non_empty = dir.path().join("has_file");
+        fs::create_dir(&non_empty).unwrap();
+        fs::write(non_empty.join("file.txt"), "content").unwrap();
+
+        let result = find_empty_dirs(dir.path()).unwrap();
+        assert!(!result.contains(&non_empty));
+    }
+
+    #[test]
+    fn test_find_empty_dirs_nested() {
+        let dir = tempdir().unwrap();
+        let parent = dir.path().join("parent");
+        let child = parent.join("child");
+        fs::create_dir_all(&child).unwrap();
+
+        let result = find_empty_dirs(dir.path()).unwrap();
+        // Both child and parent should be marked empty
+        assert!(result.contains(&child));
+        assert!(result.contains(&parent));
+    }
+
+    #[test]
+    fn test_format_age_minutes() {
+        let age = format_age(Duration::from_secs(1800)); // 30 minutes
+        assert_eq!(age, "30m ago");
+    }
+
+    #[test]
+    fn test_format_age_hours() {
+        let age = format_age(Duration::from_secs(7200)); // 2 hours
+        assert_eq!(age, "2h ago");
+    }
+
+    #[test]
+    fn test_format_age_days() {
+        let age = format_age(Duration::from_secs(172800)); // 2 days
+        assert_eq!(age, "2d ago");
+    }
+
+    #[test]
+    fn test_format_age_weeks() {
+        let age = format_age(Duration::from_secs(1209600)); // 2 weeks
+        assert_eq!(age, "2w ago");
     }
 }
