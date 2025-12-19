@@ -49,6 +49,14 @@ pub enum Commands {
         #[arg(long, group = "organize_mode")]
         by_date_taken: bool,
 
+        /// Organize audio files by artist (from ID3/audio tags)
+        #[arg(long, group = "organize_mode")]
+        by_artist: bool,
+
+        /// Organize audio files by album (Artist/Album structure)
+        #[arg(long, group = "organize_mode")]
+        by_album: bool,
+
         /// Preview changes without executing (default behavior)
         #[arg(long, short = 'n')]
         dry_run: bool,

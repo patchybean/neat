@@ -37,6 +37,8 @@ fn main() -> Result<()> {
             by_extension,
             by_camera,
             by_date_taken,
+            by_artist,
+            by_album,
             dry_run,
             execute,
             ignore,
@@ -48,6 +50,8 @@ fn main() -> Result<()> {
                 by_extension,
                 by_camera,
                 by_date_taken,
+                by_artist,
+                by_album,
                 dry_run,
                 execute,
                 cli.verbose,
@@ -127,6 +131,8 @@ fn cmd_organize(
     by_extension: bool,
     by_camera: bool,
     by_date_taken: bool,
+    by_artist: bool,
+    by_album: bool,
     dry_run: bool,
     execute: bool,
     verbose: bool,
@@ -141,6 +147,10 @@ fn cmd_organize(
         OrganizeMode::ByCamera
     } else if by_date_taken {
         OrganizeMode::ByDateTaken
+    } else if by_artist {
+        OrganizeMode::ByArtist
+    } else if by_album {
+        OrganizeMode::ByAlbum
     } else {
         OrganizeMode::ByType // Default
     };
@@ -151,6 +161,8 @@ fn cmd_organize(
         OrganizeMode::ByExtension => "extension",
         OrganizeMode::ByCamera => "camera",
         OrganizeMode::ByDateTaken => "date taken",
+        OrganizeMode::ByArtist => "artist",
+        OrganizeMode::ByAlbum => "album",
     };
 
     let canonical_path = path

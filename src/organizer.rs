@@ -11,7 +11,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::classifier::Classifier;
 use crate::logger::Logger;
-use crate::metadata::{is_exif_supported, ImageMetadata};
+use crate::metadata::{is_audio_supported, is_exif_supported, AudioMetadata, ImageMetadata};
 use crate::scanner::{format_size, FileInfo};
 
 /// Organization mode
@@ -23,6 +23,8 @@ pub enum OrganizeMode {
     ByExtension,
     ByCamera,
     ByDateTaken,
+    ByArtist,
+    ByAlbum,
 }
 
 /// A planned file move
@@ -109,6 +111,35 @@ pub fn plan_moves(files: &[FileInfo], base_path: &Path, mode: OrganizeMode) -> V
 
                     base_path.join(folder).join(&file.name)
                 }
+            }
+            OrganizeMode::ByArtist => {
+                // Only process audio files
+                if !is_audio_supported(&file.path) {
+                    continue;
+                }
+
+                let folder = AudioMetadata::from_path(&file.path)
+                    .and_then(|m| m.artist_folder_name())
+                    .unwrap_or_else(|| "Unknown Artist".to_string());
+
+                base_path.join(folder).join(&file.name)
+            }
+            OrganizeMode::ByAlbum => {
+                // Only process audio files
+                if !is_audio_supported(&file.path) {
+                    continue;
+                }
+
+                let meta = AudioMetadata::from_path(&file.path);
+                let artist = meta
+                    .as_ref()
+                    .and_then(|m| m.artist_folder_name())
+                    .unwrap_or_else(|| "Unknown Artist".to_string());
+                let album = meta
+                    .and_then(|m| m.album_folder_name())
+                    .unwrap_or_else(|| "Unknown Album".to_string());
+
+                base_path.join(artist).join(album).join(&file.name)
             }
         };
 

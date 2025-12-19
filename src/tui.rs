@@ -38,6 +38,8 @@ pub enum SelectedMode {
     ByExtension,
     ByCamera,
     ByDateTaken,
+    ByArtist,
+    ByAlbum,
 }
 
 impl SelectedMode {
@@ -49,6 +51,8 @@ impl SelectedMode {
             SelectedMode::ByExtension => OrganizeMode::ByExtension,
             SelectedMode::ByCamera => OrganizeMode::ByCamera,
             SelectedMode::ByDateTaken => OrganizeMode::ByDateTaken,
+            SelectedMode::ByArtist => OrganizeMode::ByArtist,
+            SelectedMode::ByAlbum => OrganizeMode::ByAlbum,
         }
     }
 
@@ -59,6 +63,8 @@ impl SelectedMode {
             SelectedMode::ByExtension => "By Extension",
             SelectedMode::ByCamera => "By Camera",
             SelectedMode::ByDateTaken => "By Date Taken",
+            SelectedMode::ByArtist => "By Artist",
+            SelectedMode::ByAlbum => "By Album",
         }
     }
 
@@ -68,7 +74,9 @@ impl SelectedMode {
             SelectedMode::ByDate => SelectedMode::ByExtension,
             SelectedMode::ByExtension => SelectedMode::ByCamera,
             SelectedMode::ByCamera => SelectedMode::ByDateTaken,
-            SelectedMode::ByDateTaken => SelectedMode::ByType,
+            SelectedMode::ByDateTaken => SelectedMode::ByArtist,
+            SelectedMode::ByArtist => SelectedMode::ByAlbum,
+            SelectedMode::ByAlbum => SelectedMode::ByType,
         }
     }
 }

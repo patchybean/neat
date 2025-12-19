@@ -114,6 +114,91 @@ pub fn is_exif_supported(path: &Path) -> bool {
     )
 }
 
+/// Audio metadata extracted from music files
+#[derive(Debug, Clone, Default)]
+pub struct AudioMetadata {
+    /// Artist name
+    pub artist: Option<String>,
+    /// Album name
+    pub album: Option<String>,
+    /// Track title
+    #[allow(dead_code)]
+    pub title: Option<String>,
+    /// Genre
+    #[allow(dead_code)]
+    pub genre: Option<String>,
+    /// Year
+    #[allow(dead_code)]
+    pub year: Option<u32>,
+}
+
+impl AudioMetadata {
+    /// Extract audio metadata from a music file
+    pub fn from_path(path: &Path) -> Option<Self> {
+        use lofty::file::TaggedFileExt;
+        use lofty::probe::Probe;
+        use lofty::tag::Accessor;
+
+        let tagged_file = Probe::open(path).ok()?.read().ok()?;
+        let tag = tagged_file
+            .primary_tag()
+            .or_else(|| tagged_file.first_tag())?;
+
+        Some(AudioMetadata {
+            artist: tag.artist().map(|s| s.to_string()),
+            album: tag.album().map(|s| s.to_string()),
+            title: tag.title().map(|s| s.to_string()),
+            genre: tag.genre().map(|s| s.to_string()),
+            year: tag.year(),
+        })
+    }
+
+    /// Get artist folder name for organization
+    pub fn artist_folder_name(&self) -> Option<String> {
+        self.artist
+            .as_ref()
+            .map(|a| {
+                a.replace(['/', '\\', ':', '*', '?', '<', '>', '|'], "_")
+                    .trim()
+                    .to_string()
+            })
+            .filter(|s| !s.is_empty())
+    }
+
+    /// Get album folder name for organization
+    pub fn album_folder_name(&self) -> Option<String> {
+        self.album
+            .as_ref()
+            .map(|a| {
+                a.replace(['/', '\\', ':', '*', '?', '<', '>', '|'], "_")
+                    .trim()
+                    .to_string()
+            })
+            .filter(|s| !s.is_empty())
+    }
+}
+
+/// Check if a file is a supported audio format
+pub fn is_audio_supported(path: &Path) -> bool {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_lowercase());
+
+    matches!(
+        ext.as_deref(),
+        Some("mp3")
+            | Some("flac")
+            | Some("m4a")
+            | Some("aac")
+            | Some("ogg")
+            | Some("wav")
+            | Some("wma")
+            | Some("opus")
+            | Some("aiff")
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
