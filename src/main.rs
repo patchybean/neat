@@ -1,19 +1,16 @@
 //! Neat - A smart CLI tool to organize and clean up messy directories
 
-mod classifier;
-mod cleaner;
 mod cli;
 mod commands;
 mod config;
-mod duplicates;
-mod error;
-mod export;
-mod logger;
-mod metadata;
-mod organizer;
-mod scanner;
+mod core;
 mod tui;
+mod utils;
 mod watcher;
+
+// Re-exports for convenience
+pub use core::*;
+pub use utils::*;
 
 use anyhow::Result;
 use clap::Parser;
