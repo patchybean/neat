@@ -37,6 +37,8 @@ lofty = "0.21"
 image = "0.25"
 image_hasher = "2.0"
 rayon = "1.10"
+mime_guess = "2.0"
+regex = "1.10"
 
 [[bin]]
 name = "neatcli"

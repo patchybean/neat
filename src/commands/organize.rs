@@ -5,7 +5,9 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use colored::*;
 
-use crate::organizer::{execute_moves, plan_moves, preview_moves, print_results, OrganizeMode};
+use crate::organizer::{
+    execute_copies, execute_moves, plan_moves, preview_moves, print_results, OrganizeMode,
+};
 use crate::scanner::{
     format_size, parse_date, parse_size, scan_directory, total_size, ScanOptions,
 };
@@ -29,6 +31,13 @@ pub fn run(
     max_size: Option<String>,
     after: Option<String>,
     before: Option<String>,
+    copy: bool,
+    recursive: bool,
+    startswith: Option<String>,
+    endswith: Option<String>,
+    contains: Option<String>,
+    regex: Option<String>,
+    mime: Option<String>,
 ) -> Result<()> {
     // Determine mode
     let mode = if by_date {
@@ -61,11 +70,16 @@ pub fn run(
         .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
 
+    let action = if copy { "copying" } else { "organizing" };
+    let recursive_msg = if recursive { " (recursive)" } else { "" };
+
     println!(
-        "{} Scanning {} (organizing by {})...",
+        "{} Scanning {} ({} by {}{})...",
         "→".cyan(),
         canonical_path.display().to_string().bold(),
-        mode_name.cyan()
+        action,
+        mode_name.cyan(),
+        recursive_msg
     );
 
     // Parse size filters
@@ -95,13 +109,18 @@ pub fn run(
     // Scan directory
     let options = ScanOptions {
         include_hidden: false,
-        max_depth: Some(1), // Only immediate children
+        max_depth: if recursive { None } else { Some(1) },
         follow_symlinks: false,
         ignore_patterns,
         min_size: min_size_bytes,
         max_size: max_size_bytes,
         after_date,
         before_date,
+        name_startswith: startswith,
+        name_endswith: endswith,
+        name_contains: contains,
+        regex_pattern: regex,
+        mime_filter: mime,
     };
 
     let files = scan_directory(&canonical_path, &options)?;
@@ -129,8 +148,13 @@ pub fn run(
 
     // Dry-run is default if --execute is not specified
     if execute && !dry_run {
-        let result = execute_moves(&moves, &format!("organize --by-{}", mode_name))?;
-        print_results(&result);
+        if copy {
+            let result = execute_copies(&moves, &format!("copy --by-{}", mode_name))?;
+            print_results(&result);
+        } else {
+            let result = execute_moves(&moves, &format!("organize --by-{}", mode_name))?;
+            print_results(&result);
+        }
     } else {
         preview_moves(&moves, &canonical_path);
     }

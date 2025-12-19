@@ -66,6 +66,7 @@ pub fn run(
         max_size: max_size_bytes,
         after_date,
         before_date,
+        ..Default::default()
     };
 
     let files = scan_directory(&canonical_path, &options)?;

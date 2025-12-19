@@ -39,6 +39,7 @@ pub fn run(
         max_size: None,
         after_date: None,
         before_date: None,
+        ..Default::default()
     };
 
     let files = scan_directory(&canonical_path, &options)?;

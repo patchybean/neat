@@ -63,6 +63,16 @@ pub struct ScanOptions {
     pub after_date: Option<std::time::SystemTime>,
     /// Only include files modified before this date (None = no filter)
     pub before_date: Option<std::time::SystemTime>,
+    /// Name filter: files starting with
+    pub name_startswith: Option<String>,
+    /// Name filter: files ending with
+    pub name_endswith: Option<String>,
+    /// Name filter: files containing
+    pub name_contains: Option<String>,
+    /// Regex pattern to match filename
+    pub regex_pattern: Option<String>,
+    /// MIME type filter (e.g., "image/*", "application/pdf")
+    pub mime_filter: Option<String>,
 }
 
 /// Load ignore patterns from .neatignore file in the given directory
@@ -155,6 +165,36 @@ pub fn scan_directory(path: &Path, options: &ScanOptions) -> Result<Vec<FileInfo
                 }
             }
             true
+        })
+        // Apply name filters
+        .filter(|file| {
+            use crate::core::filters::NameFilter;
+            let filter = NameFilter {
+                startswith: options.name_startswith.clone(),
+                endswith: options.name_endswith.clone(),
+                contains: options.name_contains.clone(),
+                case_insensitive: true,
+            };
+            if filter.is_empty() {
+                return true;
+            }
+            filter.matches(&file.name)
+        })
+        // Apply regex filter
+        .filter(|file| {
+            if let Some(ref pattern) = options.regex_pattern {
+                crate::core::filters::matches_regex(&file.name, pattern).unwrap_or_default()
+            } else {
+                true
+            }
+        })
+        // Apply MIME filter
+        .filter(|file| {
+            if let Some(ref mime_filter) = options.mime_filter {
+                crate::core::filters::matches_mime(&file.path, mime_filter)
+            } else {
+                true
+            }
         })
         .collect();
 

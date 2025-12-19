@@ -37,6 +37,13 @@ fn main() -> Result<()> {
             max_size,
             after,
             before,
+            copy,
+            recursive,
+            startswith,
+            endswith,
+            contains,
+            regex,
+            mime,
         } => {
             commands::organize::run(
                 &path,
@@ -55,6 +62,13 @@ fn main() -> Result<()> {
                 max_size,
                 after,
                 before,
+                copy,
+                recursive,
+                startswith,
+                endswith,
+                contains,
+                regex,
+                mime,
             )?;
         }
 

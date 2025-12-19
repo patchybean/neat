@@ -84,6 +84,34 @@ pub enum Commands {
         /// Only include files modified before this date (YYYY-MM-DD)
         #[arg(long)]
         before: Option<String>,
+
+        /// Copy files instead of moving
+        #[arg(long, short = 'c')]
+        copy: bool,
+
+        /// Scan subdirectories recursively
+        #[arg(long, short = 'r')]
+        recursive: bool,
+
+        /// Filter files starting with string
+        #[arg(long)]
+        startswith: Option<String>,
+
+        /// Filter files ending with string (before extension)
+        #[arg(long)]
+        endswith: Option<String>,
+
+        /// Filter files containing string
+        #[arg(long)]
+        contains: Option<String>,
+
+        /// Filter by regex pattern
+        #[arg(long)]
+        regex: Option<String>,
+
+        /// Filter by MIME type (e.g., "image/*", "application/pdf")
+        #[arg(long)]
+        mime: Option<String>,
     },
 
     /// Clean old files from a directory

@@ -116,6 +116,7 @@ impl App {
             max_size: None,
             after_date: None,
             before_date: None,
+            ..Default::default()
         };
 
         let canonical_path = path.canonicalize()?;
@@ -225,6 +226,7 @@ impl App {
             max_size: None,
             after_date: None,
             before_date: None,
+            ..Default::default()
         };
         self.files = scan_directory(&self.path, &options)?;
         self.selected.clear();

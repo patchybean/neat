@@ -265,6 +265,59 @@ pub fn execute_moves(moves: &[PlannedMove], command_name: &str) -> Result<Organi
     Ok(result)
 }
 
+/// Execute planned copies (copy instead of move)
+pub fn execute_copies(moves: &[PlannedMove], command_name: &str) -> Result<OrganizeResult> {
+    if moves.is_empty() {
+        return Ok(OrganizeResult::default());
+    }
+
+    let pb = ProgressBar::new(moves.len() as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template(
+                "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+            )
+            .unwrap()
+            .progress_chars("█▓░"),
+    );
+
+    let mut result = OrganizeResult::default();
+    let mut logger = Logger::new(command_name);
+
+    for mv in moves {
+        pb.inc(1);
+
+        // Create parent directory if needed
+        if let Some(parent) = mv.to.parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent)
+                    .with_context(|| format!("Failed to create directory: {:?}", parent))?;
+            }
+        }
+
+        // Handle name conflicts
+        let final_dest = resolve_conflict(&mv.to);
+
+        // Copy the file instead of moving
+        match fs::copy(&mv.from, &final_dest) {
+            Ok(_) => {
+                result.moved += 1; // reusing 'moved' for 'copied' count
+                result.total_size += mv.size;
+                logger.log_move(mv.from.clone(), final_dest);
+            }
+            Err(e) => {
+                result.skipped += 1;
+                result.errors.push(format!("{}: {}", mv.from.display(), e));
+            }
+        }
+    }
+
+    pb.finish_and_clear();
+    logger.save()?;
+
+    Ok(result)
+}
+
 /// Resolve filename conflicts by adding a number suffix
 fn resolve_conflict(path: &Path) -> PathBuf {
     if !path.exists() {
