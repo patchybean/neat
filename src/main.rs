@@ -99,6 +99,13 @@ fn main() -> Result<()> {
         Commands::Tui { path } => {
             tui::run_tui(&path)?;
         }
+
+        Commands::Completions { shell } => {
+            use clap::CommandFactory;
+            use clap_complete::generate;
+            let mut cmd = Cli::command();
+            generate(shell, &mut cmd, "neatcli", &mut std::io::stdout());
+        }
     }
 
     Ok(())

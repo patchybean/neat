@@ -152,6 +152,13 @@ pub enum Commands {
         #[arg(default_value = ".")]
         path: PathBuf,
     },
+
+    /// Generate shell completions
+    Completions {
+        /// Shell to generate completions for
+        #[arg(value_enum)]
+        shell: clap_complete::Shell,
+    },
 }
 
 #[derive(Subcommand)]

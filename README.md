@@ -18,6 +18,7 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **Undo Operations** - Rollback your last operation
 - **Interactive TUI** - Visual file browser with keyboard navigation
 - **Trash Support** - Move files to system trash instead of permanent deletion
+- **Shell Completions** - Tab completion for Bash, Zsh, Fish, PowerShell
 - **Safe by Default** - Dry-run mode lets you preview changes before executing
 
 ## 📦 Installation
@@ -146,6 +147,18 @@ destination = "Images/Screenshots/{year}-{month}"
 priority = 5
 ```
 
+### Shell Completions
+
+```bash
+# Generate completions for your shell
+neatcli completions bash > ~/.local/share/bash-completion/completions/neatcli
+neatcli completions zsh > ~/.zfunc/_neatcli
+neatcli completions fish > ~/.config/fish/completions/neatcli.fish
+
+# PowerShell
+neatcli completions powershell > _neatcli.ps1
+```
+
 ## 🛡️ Safety Features
 
 1. **Dry-run by default** - All operations preview changes first
@@ -180,6 +193,7 @@ Commands:
   watch       Watch directory and auto-organize new files
   config      Manage configuration (init, show)
   tui         Interactive TUI file browser
+  completions Generate shell completions
   help        Print help
 
 Options:
