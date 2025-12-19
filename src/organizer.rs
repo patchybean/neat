@@ -239,3 +239,115 @@ pub fn print_results(result: &OrganizeResult) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::SystemTime;
+
+    fn make_file_info(name: &str, ext: Option<&str>, size: u64) -> FileInfo {
+        FileInfo {
+            path: PathBuf::from(format!("/test/{}", name)),
+            name: name.to_string(),
+            extension: ext.map(|s| s.to_string()),
+            size,
+            modified: SystemTime::now(),
+            created: None,
+        }
+    }
+
+    #[test]
+    fn test_plan_moves_by_type() {
+        let files = vec![
+            make_file_info("photo.jpg", Some("jpg"), 1000),
+            make_file_info("doc.pdf", Some("pdf"), 2000),
+            make_file_info("song.mp3", Some("mp3"), 3000),
+        ];
+
+        let base = Path::new("/base");
+        let moves = plan_moves(&files, base, OrganizeMode::ByType);
+
+        assert_eq!(moves.len(), 3);
+        
+        // Check destinations contain correct category folders
+        assert!(moves[0].to.to_string_lossy().contains("Images"));
+        assert!(moves[1].to.to_string_lossy().contains("Documents"));
+        assert!(moves[2].to.to_string_lossy().contains("Audio"));
+    }
+
+    #[test]
+    fn test_plan_moves_by_extension() {
+        let files = vec![
+            make_file_info("a.txt", Some("txt"), 100),
+            make_file_info("b.txt", Some("txt"), 200),
+            make_file_info("c.py", Some("py"), 300),
+        ];
+
+        let base = Path::new("/base");
+        let moves = plan_moves(&files, base, OrganizeMode::ByExtension);
+
+        assert_eq!(moves.len(), 3);
+        
+        // Check destinations use uppercase extension folders
+        assert!(moves[0].to.to_string_lossy().contains("TXT"));
+        assert!(moves[1].to.to_string_lossy().contains("TXT"));
+        assert!(moves[2].to.to_string_lossy().contains("PY"));
+    }
+
+    #[test]
+    fn test_plan_moves_no_extension() {
+        let files = vec![
+            make_file_info("Makefile", None, 100),
+        ];
+
+        let base = Path::new("/base");
+        let moves = plan_moves(&files, base, OrganizeMode::ByExtension);
+
+        assert_eq!(moves.len(), 1);
+        assert!(moves[0].to.to_string_lossy().contains("NO_EXTENSION"));
+    }
+
+    #[test]
+    fn test_plan_moves_empty_files() {
+        let files: Vec<FileInfo> = vec![];
+        let base = Path::new("/base");
+        let moves = plan_moves(&files, base, OrganizeMode::ByType);
+        assert!(moves.is_empty());
+    }
+
+    #[test]
+    fn test_plan_moves_skip_already_organized() {
+        // File already in correct location
+        let files = vec![FileInfo {
+            path: PathBuf::from("/base/Images/photo.jpg"),
+            name: "photo.jpg".to_string(),
+            extension: Some("jpg".to_string()),
+            size: 1000,
+            modified: SystemTime::now(),
+            created: None,
+        }];
+
+        let base = Path::new("/base");
+        let moves = plan_moves(&files, base, OrganizeMode::ByType);
+        
+        // Should skip since already in correct place
+        assert!(moves.is_empty());
+    }
+
+    #[test]
+    fn test_organize_result_default() {
+        let result = OrganizeResult::default();
+        assert_eq!(result.moved, 0);
+        assert_eq!(result.skipped, 0);
+        assert!(result.errors.is_empty());
+        assert_eq!(result.total_size, 0);
+    }
+
+    #[test]
+    fn test_resolve_conflict_no_conflict() {
+        // Non-existent path should return as-is
+        let path = Path::new("/nonexistent/file.txt");
+        let result = resolve_conflict(path);
+        assert_eq!(result, path);
+    }
+}

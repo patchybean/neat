@@ -112,3 +112,152 @@ pub fn format_size(bytes: u64) -> String {
         format!("{} B", bytes)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_format_size_bytes() {
+        assert_eq!(format_size(0), "0 B");
+        assert_eq!(format_size(500), "500 B");
+        assert_eq!(format_size(1023), "1023 B");
+    }
+
+    #[test]
+    fn test_format_size_kb() {
+        assert_eq!(format_size(1024), "1.00 KB");
+        assert_eq!(format_size(1536), "1.50 KB");
+        assert_eq!(format_size(10240), "10.00 KB");
+    }
+
+    #[test]
+    fn test_format_size_mb() {
+        assert_eq!(format_size(1024 * 1024), "1.00 MB");
+        assert_eq!(format_size(1024 * 1024 * 5), "5.00 MB");
+    }
+
+    #[test]
+    fn test_format_size_gb() {
+        assert_eq!(format_size(1024 * 1024 * 1024), "1.00 GB");
+        assert_eq!(format_size(1024 * 1024 * 1024 * 2), "2.00 GB");
+    }
+
+    #[test]
+    fn test_total_size() {
+        let files = vec![
+            FileInfo {
+                path: PathBuf::from("/test/a.txt"),
+                name: "a.txt".to_string(),
+                extension: Some("txt".to_string()),
+                size: 100,
+                modified: SystemTime::now(),
+                created: None,
+            },
+            FileInfo {
+                path: PathBuf::from("/test/b.txt"),
+                name: "b.txt".to_string(),
+                extension: Some("txt".to_string()),
+                size: 200,
+                modified: SystemTime::now(),
+                created: None,
+            },
+        ];
+        assert_eq!(total_size(&files), 300);
+    }
+
+    #[test]
+    fn test_total_size_empty() {
+        let files: Vec<FileInfo> = vec![];
+        assert_eq!(total_size(&files), 0);
+    }
+
+    #[test]
+    fn test_scan_directory_basic() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(file, "Hello, world!").unwrap();
+
+        let options = ScanOptions::default();
+        let result = scan_directory(dir.path(), &options).unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].name, "test.txt");
+        assert_eq!(result[0].extension, Some("txt".to_string()));
+    }
+
+    #[test]
+    fn test_scan_directory_hidden_files() {
+        let dir = tempdir().unwrap();
+        
+        // Create regular file
+        File::create(dir.path().join("visible.txt")).unwrap();
+        // Create hidden file
+        File::create(dir.path().join(".hidden")).unwrap();
+
+        // Without hidden files
+        let options = ScanOptions { include_hidden: false, ..Default::default() };
+        let result = scan_directory(dir.path(), &options).unwrap();
+        assert_eq!(result.len(), 1);
+
+        // With hidden files
+        let options = ScanOptions { include_hidden: true, ..Default::default() };
+        let result = scan_directory(dir.path(), &options).unwrap();
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_scan_directory_max_depth() {
+        let dir = tempdir().unwrap();
+        let subdir = dir.path().join("subdir");
+        fs::create_dir(&subdir).unwrap();
+        
+        File::create(dir.path().join("root.txt")).unwrap();
+        File::create(subdir.join("nested.txt")).unwrap();
+
+        // Depth 1 (only root)
+        let options = ScanOptions { max_depth: Some(1), ..Default::default() };
+        let result = scan_directory(dir.path(), &options).unwrap();
+        assert_eq!(result.len(), 1);
+
+        // Depth 2 (includes subdir)
+        let options = ScanOptions { max_depth: Some(2), ..Default::default() };
+        let result = scan_directory(dir.path(), &options).unwrap();
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_scan_directory_nonexistent() {
+        let options = ScanOptions::default();
+        let result = scan_directory(Path::new("/nonexistent/path"), &options);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_file_info_from_path() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.pdf");
+        let mut file = File::create(&file_path).unwrap();
+        write!(file, "content").unwrap();
+
+        let info = FileInfo::from_path(&file_path).unwrap();
+        assert_eq!(info.name, "test.pdf");
+        assert_eq!(info.extension, Some("pdf".to_string()));
+        assert_eq!(info.size, 7); // "content" = 7 bytes
+    }
+
+    #[test]
+    fn test_file_info_no_extension() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("Makefile");
+        File::create(&file_path).unwrap();
+
+        let info = FileInfo::from_path(&file_path).unwrap();
+        assert_eq!(info.name, "Makefile");
+        assert_eq!(info.extension, None);
+    }
+}

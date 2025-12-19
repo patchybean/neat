@@ -161,3 +161,147 @@ pub fn display_duplicates(groups: &[DuplicateGroup]) {
         "--delete --execute".yellow()
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use std::path::PathBuf;
+    use std::time::SystemTime;
+    use tempfile::tempdir;
+
+    fn make_file_info(path: PathBuf, size: u64) -> FileInfo {
+        FileInfo {
+            name: path.file_name().unwrap().to_string_lossy().to_string(),
+            extension: path.extension().map(|e| e.to_string_lossy().to_string()),
+            path,
+            size,
+            modified: SystemTime::now(),
+            created: None,
+        }
+    }
+
+    #[test]
+    fn test_wasted_space_single_file() {
+        let group = DuplicateGroup {
+            hash: "abc".to_string(),
+            files: vec![make_file_info(PathBuf::from("/a.txt"), 100)],
+            size: 100,
+        };
+        assert_eq!(group.wasted_space(), 0);
+    }
+
+    #[test]
+    fn test_wasted_space_two_files() {
+        let group = DuplicateGroup {
+            hash: "abc".to_string(),
+            files: vec![
+                make_file_info(PathBuf::from("/a.txt"), 100),
+                make_file_info(PathBuf::from("/b.txt"), 100),
+            ],
+            size: 100,
+        };
+        assert_eq!(group.wasted_space(), 100); // 1 duplicate
+    }
+
+    #[test]
+    fn test_wasted_space_three_files() {
+        let group = DuplicateGroup {
+            hash: "abc".to_string(),
+            files: vec![
+                make_file_info(PathBuf::from("/a.txt"), 500),
+                make_file_info(PathBuf::from("/b.txt"), 500),
+                make_file_info(PathBuf::from("/c.txt"), 500),
+            ],
+            size: 500,
+        };
+        assert_eq!(group.wasted_space(), 1000); // 2 duplicates * 500
+    }
+
+    #[test]
+    fn test_find_duplicates_empty() {
+        let files: Vec<FileInfo> = vec![];
+        let result = find_duplicates(&files).unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_find_duplicates_no_duplicates() {
+        let dir = tempdir().unwrap();
+        
+        let file1 = dir.path().join("a.txt");
+        let file2 = dir.path().join("b.txt");
+        
+        let mut f1 = File::create(&file1).unwrap();
+        write!(f1, "content A").unwrap();
+        
+        let mut f2 = File::create(&file2).unwrap();
+        write!(f2, "content B").unwrap();
+        
+        let files = vec![
+            FileInfo::from_path(&file1).unwrap(),
+            FileInfo::from_path(&file2).unwrap(),
+        ];
+        
+        let result = find_duplicates(&files).unwrap();
+        assert!(result.is_empty()); // Different content, no duplicates
+    }
+
+    #[test]
+    fn test_find_duplicates_with_duplicates() {
+        let dir = tempdir().unwrap();
+        
+        let file1 = dir.path().join("a.txt");
+        let file2 = dir.path().join("b.txt");
+        
+        let mut f1 = File::create(&file1).unwrap();
+        write!(f1, "same content").unwrap();
+        
+        let mut f2 = File::create(&file2).unwrap();
+        write!(f2, "same content").unwrap();
+        
+        let files = vec![
+            FileInfo::from_path(&file1).unwrap(),
+            FileInfo::from_path(&file2).unwrap(),
+        ];
+        
+        let result = find_duplicates(&files).unwrap();
+        assert_eq!(result.len(), 1); // One duplicate group
+        assert_eq!(result[0].files.len(), 2);
+    }
+
+    #[test]
+    fn test_find_duplicates_empty_files_skipped() {
+        let dir = tempdir().unwrap();
+        
+        let file1 = dir.path().join("empty1.txt");
+        let file2 = dir.path().join("empty2.txt");
+        
+        File::create(&file1).unwrap(); // Empty file
+        File::create(&file2).unwrap(); // Empty file
+        
+        let files = vec![
+            FileInfo::from_path(&file1).unwrap(),
+            FileInfo::from_path(&file2).unwrap(),
+        ];
+        
+        let result = find_duplicates(&files).unwrap();
+        assert!(result.is_empty()); // Empty files are skipped
+    }
+
+    #[test]
+    fn test_hash_file() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        
+        let mut file = File::create(&file_path).unwrap();
+        write!(file, "hello world").unwrap();
+        
+        let hash = hash_file(&file_path).unwrap();
+        
+        // SHA256 of "hello world" should be consistent
+        assert!(!hash.is_empty());
+        assert_eq!(hash.len(), 64); // SHA256 hex is 64 chars
+    }
+}
