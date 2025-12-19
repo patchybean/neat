@@ -7,6 +7,7 @@ mod config;
 mod duplicates;
 mod error;
 mod logger;
+mod metadata;
 mod organizer;
 mod scanner;
 mod tui;
@@ -34,6 +35,8 @@ fn main() -> Result<()> {
             by_type,
             by_date,
             by_extension,
+            by_camera,
+            by_date_taken,
             dry_run,
             execute,
             ignore,
@@ -43,6 +46,8 @@ fn main() -> Result<()> {
                 by_type,
                 by_date,
                 by_extension,
+                by_camera,
+                by_date_taken,
                 dry_run,
                 execute,
                 cli.verbose,
@@ -120,6 +125,8 @@ fn cmd_organize(
     _by_type: bool,
     by_date: bool,
     by_extension: bool,
+    by_camera: bool,
+    by_date_taken: bool,
     dry_run: bool,
     execute: bool,
     verbose: bool,
@@ -130,6 +137,10 @@ fn cmd_organize(
         OrganizeMode::ByDate
     } else if by_extension {
         OrganizeMode::ByExtension
+    } else if by_camera {
+        OrganizeMode::ByCamera
+    } else if by_date_taken {
+        OrganizeMode::ByDateTaken
     } else {
         OrganizeMode::ByType // Default
     };
@@ -138,6 +149,8 @@ fn cmd_organize(
         OrganizeMode::ByType => "type",
         OrganizeMode::ByDate => "date",
         OrganizeMode::ByExtension => "extension",
+        OrganizeMode::ByCamera => "camera",
+        OrganizeMode::ByDateTaken => "date taken",
     };
 
     let canonical_path = path

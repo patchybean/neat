@@ -11,6 +11,7 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **Organize by Type** - Automatically sort files into folders: Images, Documents, Videos, Audio, Archives, Code, Data
 - **Organize by Date** - Create YYYY/MM folder structure based on file dates
 - **Organize by Extension** - Group files by their extensions
+- **EXIF Metadata** - Organize photos by camera model or date taken (from EXIF data)
 - **Find Duplicates** - Detect duplicate files using SHA256 content hashing
 - **Clean Old Files** - Remove files older than a specified duration
 - **Watch Mode** - Auto-organize new files as they appear
@@ -62,6 +63,13 @@ neatcli organize ~/Downloads --by-date --execute
 
 # Organize by extension
 neatcli organize ~/Downloads --by-extension --execute
+
+# Organize photos by camera model (from EXIF data)
+neatcli organize ~/Photos --by-camera --execute
+# Creates: Canon EOS 5D/, iPhone 15 Pro/, etc.
+
+# Organize photos by date taken (from EXIF, more accurate)
+neatcli organize ~/Photos --by-date-taken --execute
 
 # Ignore specific patterns
 neatcli organize ~/Downloads --by-type -I "*.log" -I "temp_*" --execute

@@ -32,6 +32,7 @@ notify-debouncer-mini = "0.5"
 ratatui = "0.29"
 crossterm = "0.28"
 trash = "5.2"
+kamadak-exif = "0.5"
 
 [[bin]]
 name = "neatcli"

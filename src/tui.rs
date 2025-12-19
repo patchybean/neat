@@ -36,6 +36,8 @@ pub enum SelectedMode {
     ByType,
     ByDate,
     ByExtension,
+    ByCamera,
+    ByDateTaken,
 }
 
 impl SelectedMode {
@@ -45,6 +47,8 @@ impl SelectedMode {
             SelectedMode::ByType => OrganizeMode::ByType,
             SelectedMode::ByDate => OrganizeMode::ByDate,
             SelectedMode::ByExtension => OrganizeMode::ByExtension,
+            SelectedMode::ByCamera => OrganizeMode::ByCamera,
+            SelectedMode::ByDateTaken => OrganizeMode::ByDateTaken,
         }
     }
 
@@ -53,6 +57,8 @@ impl SelectedMode {
             SelectedMode::ByType => "By Type",
             SelectedMode::ByDate => "By Date",
             SelectedMode::ByExtension => "By Extension",
+            SelectedMode::ByCamera => "By Camera",
+            SelectedMode::ByDateTaken => "By Date Taken",
         }
     }
 
@@ -60,7 +66,9 @@ impl SelectedMode {
         match self {
             SelectedMode::ByType => SelectedMode::ByDate,
             SelectedMode::ByDate => SelectedMode::ByExtension,
-            SelectedMode::ByExtension => SelectedMode::ByType,
+            SelectedMode::ByExtension => SelectedMode::ByCamera,
+            SelectedMode::ByCamera => SelectedMode::ByDateTaken,
+            SelectedMode::ByDateTaken => SelectedMode::ByType,
         }
     }
 }

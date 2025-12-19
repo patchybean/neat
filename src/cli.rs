@@ -41,6 +41,14 @@ pub enum Commands {
         #[arg(long, group = "organize_mode")]
         by_extension: bool,
 
+        /// Organize images by camera model (from EXIF data)
+        #[arg(long, group = "organize_mode")]
+        by_camera: bool,
+
+        /// Organize images by date taken (from EXIF data, more accurate)
+        #[arg(long, group = "organize_mode")]
+        by_date_taken: bool,
+
         /// Preview changes without executing (default behavior)
         #[arg(long, short = 'n')]
         dry_run: bool,

@@ -11,6 +11,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::classifier::Classifier;
 use crate::logger::Logger;
+use crate::metadata::{is_exif_supported, ImageMetadata};
 use crate::scanner::{format_size, FileInfo};
 
 /// Organization mode
@@ -20,6 +21,8 @@ pub enum OrganizeMode {
     ByType,
     ByDate,
     ByExtension,
+    ByCamera,
+    ByDateTaken,
 }
 
 /// A planned file move
@@ -65,6 +68,47 @@ pub fn plan_moves(files: &[FileInfo], base_path: &Path, mode: OrganizeMode) -> V
             OrganizeMode::ByExtension => {
                 let ext = file.extension.as_deref().unwrap_or("no_extension");
                 base_path.join(ext.to_uppercase()).join(&file.name)
+            }
+            OrganizeMode::ByCamera => {
+                // Only process files with EXIF support
+                if !is_exif_supported(&file.path) {
+                    continue;
+                }
+
+                let folder = ImageMetadata::from_path(&file.path)
+                    .and_then(|m| m.camera_folder_name())
+                    .unwrap_or_else(|| "Unknown Camera".to_string());
+
+                base_path.join(folder).join(&file.name)
+            }
+            OrganizeMode::ByDateTaken => {
+                // Only process files with EXIF support
+                if !is_exif_supported(&file.path) {
+                    // Fallback to file modified date for non-EXIF files
+                    let datetime = file
+                        .modified
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| Utc.timestamp_opt(d.as_secs() as i64, 0).unwrap())
+                        .unwrap_or_else(|_| Utc::now());
+
+                    let year = datetime.year().to_string();
+                    let month = format!("{:02}", datetime.month());
+                    base_path.join(year).join(month).join(&file.name)
+                } else {
+                    let folder = ImageMetadata::from_path(&file.path)
+                        .and_then(|m| m.date_taken_folder())
+                        .unwrap_or_else(|| {
+                            // Fallback to file modified date
+                            let datetime = file
+                                .modified
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .map(|d| Utc.timestamp_opt(d.as_secs() as i64, 0).unwrap())
+                                .unwrap_or_else(|_| Utc::now());
+                            format!("{}/{:02}", datetime.year(), datetime.month())
+                        });
+
+                    base_path.join(folder).join(&file.name)
+                }
             }
         };
 
