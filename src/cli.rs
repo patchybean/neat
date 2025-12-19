@@ -71,6 +71,10 @@ pub enum Commands {
         /// Actually execute the changes
         #[arg(long, short)]
         execute: bool,
+
+        /// Move files to trash instead of permanent deletion
+        #[arg(long)]
+        trash: bool,
     },
 
     /// Find duplicate files by content
@@ -90,6 +94,10 @@ pub enum Commands {
         /// Actually execute the changes
         #[arg(long, short)]
         execute: bool,
+
+        /// Move duplicates to trash instead of permanent deletion
+        #[arg(long)]
+        trash: bool,
     },
 
     /// Show statistics about a directory

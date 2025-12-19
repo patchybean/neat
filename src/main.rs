@@ -54,8 +54,9 @@ fn main() -> Result<()> {
             empty_folders,
             dry_run,
             execute,
+            trash,
         } => {
-            cmd_clean(&path, older_than, empty_folders, dry_run, execute)?;
+            cmd_clean(&path, older_than, empty_folders, dry_run, execute, trash)?;
         }
 
         Commands::Duplicates {
@@ -63,8 +64,9 @@ fn main() -> Result<()> {
             delete,
             dry_run,
             execute,
+            trash,
         } => {
-            cmd_duplicates(&path, delete, dry_run, execute)?;
+            cmd_duplicates(&path, delete, dry_run, execute, trash)?;
         }
 
         Commands::Stats { path } => {
@@ -186,6 +188,7 @@ fn cmd_clean(
     empty_folders: bool,
     dry_run: bool,
     execute: bool,
+    use_trash: bool,
 ) -> Result<()> {
     let canonical_path = path
         .canonicalize()
@@ -211,7 +214,7 @@ fn cmd_clean(
         let old_files = cleaner::find_old_files(&files, duration);
 
         if execute && !dry_run {
-            cleaner::execute_clean(&old_files, false)?;
+            cleaner::execute_clean(&old_files, false, use_trash)?;
         } else {
             cleaner::preview_clean(&old_files, &duration_str);
         }
@@ -253,7 +256,13 @@ fn cmd_clean(
 }
 
 /// Duplicates command handler
-fn cmd_duplicates(path: &Path, delete: bool, dry_run: bool, execute: bool) -> Result<()> {
+fn cmd_duplicates(
+    path: &Path,
+    delete: bool,
+    dry_run: bool,
+    execute: bool,
+    use_trash: bool,
+) -> Result<()> {
     let canonical_path = path
         .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
@@ -277,8 +286,12 @@ fn cmd_duplicates(path: &Path, delete: bool, dry_run: bool, execute: bool) -> Re
     display_duplicates(&duplicates);
 
     if delete && execute && !dry_run && !duplicates.is_empty() {
+        let action = if use_trash { "Move to trash" } else { "Delete" };
         let confirmed = dialoguer::Confirm::new()
-            .with_prompt("Delete duplicate files (keeping first in each group)?")
+            .with_prompt(format!(
+                "{} duplicate files (keeping first in each group)?",
+                action
+            ))
             .default(false)
             .interact()?;
 
@@ -287,21 +300,35 @@ fn cmd_duplicates(path: &Path, delete: bool, dry_run: bool, execute: bool) -> Re
             for group in &duplicates {
                 // Skip the first file (the one we keep)
                 for file in group.files.iter().skip(1) {
-                    if let Err(e) = fs::remove_file(&file.path) {
-                        eprintln!(
-                            "{} Failed to delete {}: {}",
-                            "✗".red(),
-                            file.path.display(),
-                            e
-                        );
+                    let result = if use_trash {
+                        trash::delete(&file.path).map_err(|e| anyhow::anyhow!("{}", e))
                     } else {
-                        deleted += 1;
+                        fs::remove_file(&file.path).map_err(Into::into)
+                    };
+
+                    match result {
+                        Ok(_) => deleted += 1,
+                        Err(e) => {
+                            eprintln!(
+                                "{} Failed to {} {}: {}",
+                                "✗".red(),
+                                if use_trash { "trash" } else { "delete" },
+                                file.path.display(),
+                                e
+                            );
+                        }
                     }
                 }
             }
+            let action_past = if use_trash {
+                "Moved to trash"
+            } else {
+                "Deleted"
+            };
             println!(
-                "\n{} Deleted {} duplicate files",
+                "\n{} {} {} duplicate files",
                 "✓".green(),
+                action_past,
                 deleted.to_string().green()
             );
         }

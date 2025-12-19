@@ -113,16 +113,19 @@ pub fn preview_clean(files: &[&FileInfo], duration_str: &str) {
 }
 
 /// Execute file deletion with confirmation
-pub fn execute_clean(files: &[&FileInfo], force: bool) -> Result<(usize, u64)> {
+pub fn execute_clean(files: &[&FileInfo], force: bool, use_trash: bool) -> Result<(usize, u64)> {
     if files.is_empty() {
         return Ok((0, 0));
     }
+
+    let action = if use_trash { "Move to trash" } else { "Delete" };
 
     // Confirm with user unless forced
     if !force {
         let confirmed = Confirm::new()
             .with_prompt(format!(
-                "Delete {} files ({})?",
+                "{} {} files ({})?",
+                action,
                 files.len(),
                 format_size(files.iter().map(|f| f.size).sum())
             ))
@@ -136,20 +139,31 @@ pub fn execute_clean(files: &[&FileInfo], force: bool) -> Result<(usize, u64)> {
     }
 
     let pb = ProgressBar::new(files.len() as u64);
+    let template = if use_trash {
+        "{spinner:.green} Moving to trash [{bar:40.yellow/white}] {pos}/{len}"
+    } else {
+        "{spinner:.green} Deleting [{bar:40.red/white}] {pos}/{len}"
+    };
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} Deleting [{bar:40.red/white}] {pos}/{len}")
+            .template(template)
             .unwrap()
             .progress_chars("█▓░"),
     );
 
     let mut deleted = 0;
     let mut total_size = 0u64;
-    let mut logger = Logger::new("clean");
+    let mut logger = Logger::new(if use_trash { "clean --trash" } else { "clean" });
 
     for file in files {
         pb.inc(1);
-        match fs::remove_file(&file.path) {
+        let result = if use_trash {
+            trash::delete(&file.path).map_err(|e| anyhow::anyhow!("{}", e))
+        } else {
+            fs::remove_file(&file.path).map_err(Into::into)
+        };
+
+        match result {
             Ok(_) => {
                 deleted += 1;
                 total_size += file.size;
@@ -157,8 +171,9 @@ pub fn execute_clean(files: &[&FileInfo], force: bool) -> Result<(usize, u64)> {
             }
             Err(e) => {
                 eprintln!(
-                    "{} Failed to delete {}: {}",
+                    "{} Failed to {} {}: {}",
                     "✗".red(),
+                    if use_trash { "trash" } else { "delete" },
                     file.path.display(),
                     e
                 );
@@ -169,9 +184,15 @@ pub fn execute_clean(files: &[&FileInfo], force: bool) -> Result<(usize, u64)> {
     pb.finish_and_clear();
     logger.save()?;
 
+    let action_past = if use_trash {
+        "Moved to trash"
+    } else {
+        "Deleted"
+    };
     println!(
-        "\n{} Deleted {} files ({})",
+        "\n{} {} {} files ({})",
         "✓".green(),
+        action_past,
         deleted.to_string().green(),
         format_size(total_size).green()
     );

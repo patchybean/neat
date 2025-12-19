@@ -1,7 +1,7 @@
 # 🧹 neatcli
 
-[![CI](https://github.com/patchybean/neat/actions/workflows/ci.yml/badge.svg)](https://github.com/patchybean/neat/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/patchybean/neat)](https://github.com/patchybean/neat/releases)
+[![CI](https://github.com/patchybean/neatcli/actions/workflows/ci.yml/badge.svg)](https://github.com/patchybean/neatcli/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/patchybean/neatcli)](https://github.com/patchybean/neatcli/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A smart CLI tool to organize and clean up messy directories, built in Rust.
@@ -17,6 +17,7 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **Custom Rules** - Define your own organization rules via TOML config
 - **Undo Operations** - Rollback your last operation
 - **Interactive TUI** - Visual file browser with keyboard navigation
+- **Trash Support** - Move files to system trash instead of permanent deletion
 - **Safe by Default** - Dry-run mode lets you preview changes before executing
 
 ## 📦 Installation
@@ -37,8 +38,8 @@ cargo install neatcli
 ### From source
 
 ```bash
-git clone https://github.com/patchybean/neat
-cd neat
+git clone https://github.com/patchybean/neatcli
+cd neatcli
 cargo build --release
 sudo cp target/release/neatcli /usr/local/bin/
 ```
@@ -69,6 +70,9 @@ neatcli duplicates ~/Downloads
 
 # Find and delete duplicates
 neatcli duplicates ~/Downloads --delete --execute
+
+# Move duplicates to trash instead
+neatcli duplicates ~/Downloads --delete --trash --execute
 ```
 
 ### Clean Old Files
@@ -79,6 +83,9 @@ neatcli clean ~/Downloads --older-than 30d
 
 # Delete files older than 7 days
 neatcli clean ~/Downloads --older-than 7d --execute
+
+# Move old files to trash instead of permanent deletion
+neatcli clean ~/Downloads --older-than 7d --trash --execute
 
 # Remove empty folders
 neatcli clean ~/Downloads --empty-folders --execute
