@@ -36,6 +36,7 @@ kamadak-exif = "0.5"
 lofty = "0.21"
 image = "0.25"
 image_hasher = "2.0"
+rayon = "1.10"
 
 [[bin]]
 name = "neatcli"

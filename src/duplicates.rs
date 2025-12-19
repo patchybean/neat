@@ -4,10 +4,12 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
+use std::sync::Mutex;
 
 use anyhow::Result;
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
+use rayon::prelude::*;
 use sha2::{Digest, Sha256};
 
 use crate::scanner::{format_size, FileInfo};
@@ -57,31 +59,35 @@ pub fn find_duplicates(files: &[FileInfo]) -> Result<Vec<DuplicateGroup>> {
         return Ok(Vec::new());
     }
 
-    // Step 2: Hash files with same size
+    // Step 2: Hash files with same size (in parallel)
     let total_files: usize = potential_dups.iter().map(|g| g.len()).sum();
 
     let pb = ProgressBar::new(total_files as u64);
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} Hashing files [{bar:40.cyan/blue}] {pos}/{len}")
+            .template("{spinner:.green} Hashing files [{bar:40.cyan/blue}] {pos}/{len} ({per_sec})")
             .unwrap()
             .progress_chars("█▓░"),
     );
 
-    let mut by_hash: HashMap<String, Vec<FileInfo>> = HashMap::new();
+    // Flatten all files to hash
+    let files_to_hash: Vec<&FileInfo> = potential_dups.into_iter().flatten().collect();
 
-    for group in potential_dups {
-        for file in group {
-            pb.inc(1);
-            if let Ok(hash) = hash_file(&file.path) {
-                by_hash.entry(hash).or_default().push(file.clone());
-            }
+    // Hash files in parallel
+    let by_hash: Mutex<HashMap<String, Vec<FileInfo>>> = Mutex::new(HashMap::new());
+
+    files_to_hash.par_iter().for_each(|file| {
+        if let Ok(hash) = hash_file(&file.path) {
+            let mut map = by_hash.lock().unwrap();
+            map.entry(hash).or_default().push((*file).clone());
         }
-    }
+        pb.inc(1);
+    });
 
     pb.finish_and_clear();
 
     // Step 3: Build duplicate groups
+    let by_hash = by_hash.into_inner().unwrap();
     let duplicates: Vec<DuplicateGroup> = by_hash
         .into_iter()
         .filter(|(_, files)| files.len() > 1)
@@ -212,7 +218,7 @@ pub fn find_similar_images(files: &[FileInfo], threshold: u32) -> Result<Vec<Sim
     }
 
     println!(
-        "  {} Calculating perceptual hashes for {} images...",
+        "  {} Calculating perceptual hashes for {} images (parallel)...",
         "→".cyan(),
         images.len()
     );
@@ -220,7 +226,9 @@ pub fn find_similar_images(files: &[FileInfo], threshold: u32) -> Result<Vec<Sim
     let pb = ProgressBar::new(images.len() as u64);
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} Hashing images [{bar:40.cyan/blue}] {pos}/{len}")
+            .template(
+                "{spinner:.green} Hashing images [{bar:40.cyan/blue}] {pos}/{len} ({per_sec})",
+            )
             .unwrap()
             .progress_chars("█▓░"),
     );
@@ -231,16 +239,18 @@ pub fn find_similar_images(files: &[FileInfo], threshold: u32) -> Result<Vec<Sim
         .hash_size(16, 16)
         .to_hasher();
 
-    // Calculate hashes for all images
-    let mut hashes: Vec<(&FileInfo, Option<image_hasher::ImageHash>)> = Vec::new();
+    // Calculate hashes for all images in parallel
+    let hashes: Vec<(&FileInfo, Option<image_hasher::ImageHash>)> = images
+        .par_iter()
+        .map(|file| {
+            pb.inc(1);
+            let hash = image::open(&file.path)
+                .ok()
+                .map(|img| hasher.hash_image(&img));
+            (*file, hash)
+        })
+        .collect();
 
-    for file in &images {
-        pb.inc(1);
-        let hash = image::open(&file.path)
-            .ok()
-            .map(|img| hasher.hash_image(&img));
-        hashes.push((file, hash));
-    }
     pb.finish_and_clear();
 
     // Find similar images
