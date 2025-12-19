@@ -4,7 +4,38 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
-use exif::{In, Reader, Tag};
+use exif::{Exif, In, Reader, Tag, Value};
+
+/// Extract GPS coordinate from EXIF data (latitude or longitude)
+/// Converts from DMS (degrees/minutes/seconds) to decimal degrees
+fn extract_gps_coordinate(exif: &Exif, coord_tag: Tag, ref_tag: Tag) -> Option<f64> {
+    let coord_field = exif.get_field(coord_tag, In::PRIMARY)?;
+
+    // GPS coordinates are stored as 3 rationals: [degrees, minutes, seconds]
+    let rationals = match &coord_field.value {
+        Value::Rational(v) if v.len() >= 3 => v,
+        _ => return None,
+    };
+
+    let degrees = rationals[0].to_f64();
+    let minutes = rationals[1].to_f64();
+    let seconds = rationals[2].to_f64();
+
+    // Convert DMS to decimal degrees
+    let mut decimal = degrees + (minutes / 60.0) + (seconds / 3600.0);
+
+    // Check reference (N/S for latitude, E/W for longitude)
+    // South and West are negative
+    if let Some(ref_field) = exif.get_field(ref_tag, In::PRIMARY) {
+        let ref_value = ref_field.display_value().to_string();
+        let ref_char = ref_value.trim().trim_matches('"').chars().next();
+        if matches!(ref_char, Some('S') | Some('W')) {
+            decimal = -decimal;
+        }
+    }
+
+    Some(decimal)
+}
 
 /// EXIF metadata extracted from an image
 #[derive(Debug, Clone, Default)]
@@ -15,11 +46,9 @@ pub struct ImageMetadata {
     pub camera_model: Option<String>,
     /// Date/time when the photo was taken
     pub date_taken: Option<String>,
-    /// GPS latitude
-    #[allow(dead_code)]
+    /// GPS latitude (decimal degrees, negative for South)
     pub gps_latitude: Option<f64>,
-    /// GPS longitude
-    #[allow(dead_code)]
+    /// GPS longitude (decimal degrees, negative for West)
     pub gps_longitude: Option<f64>,
 }
 
@@ -43,12 +72,16 @@ impl ImageMetadata {
             .or_else(|| exif.get_field(Tag::DateTime, In::PRIMARY))
             .map(|f| f.display_value().to_string().trim().to_string());
 
+        // Extract GPS coordinates
+        let gps_latitude = extract_gps_coordinate(&exif, Tag::GPSLatitude, Tag::GPSLatitudeRef);
+        let gps_longitude = extract_gps_coordinate(&exif, Tag::GPSLongitude, Tag::GPSLongitudeRef);
+
         Some(ImageMetadata {
             camera_make,
             camera_model,
             date_taken,
-            gps_latitude: None, // TODO: implement GPS extraction
-            gps_longitude: None,
+            gps_latitude,
+            gps_longitude,
         })
     }
 
@@ -208,8 +241,21 @@ mod tests {
         assert!(is_exif_supported(Path::new("photo.jpg")));
         assert!(is_exif_supported(Path::new("photo.JPEG")));
         assert!(is_exif_supported(Path::new("photo.tiff")));
+        assert!(is_exif_supported(Path::new("photo.heic")));
         assert!(!is_exif_supported(Path::new("photo.png")));
         assert!(!is_exif_supported(Path::new("document.pdf")));
+    }
+
+    #[test]
+    fn test_is_audio_supported() {
+        assert!(is_audio_supported(Path::new("song.mp3")));
+        assert!(is_audio_supported(Path::new("song.MP3")));
+        assert!(is_audio_supported(Path::new("song.flac")));
+        assert!(is_audio_supported(Path::new("song.m4a")));
+        assert!(is_audio_supported(Path::new("song.opus")));
+        assert!(is_audio_supported(Path::new("song.wav")));
+        assert!(!is_audio_supported(Path::new("video.mp4")));
+        assert!(!is_audio_supported(Path::new("document.pdf")));
     }
 
     #[test]
@@ -221,5 +267,120 @@ mod tests {
 
         meta.date_taken = Some("2023:12:25 08:00:00".to_string());
         assert_eq!(meta.date_taken_folder(), Some("2023/12".to_string()));
+    }
+
+    #[test]
+    fn test_date_taken_folder_none() {
+        let meta = ImageMetadata::default();
+        assert_eq!(meta.date_taken_folder(), None);
+    }
+
+    #[test]
+    fn test_camera_folder_name_basic() {
+        let meta = ImageMetadata {
+            camera_model: Some("Canon EOS 5D".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(meta.camera_folder_name(), Some("Canon EOS 5D".to_string()));
+    }
+
+    #[test]
+    fn test_camera_folder_name_with_quotes() {
+        let meta = ImageMetadata {
+            camera_model: Some("\"iPhone 15 Pro\"".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(meta.camera_folder_name(), Some("iPhone 15 Pro".to_string()));
+    }
+
+    #[test]
+    fn test_camera_folder_name_sanitizes_special_chars() {
+        let meta = ImageMetadata {
+            camera_model: Some("Model/With:Special*Chars".to_string()),
+            ..Default::default()
+        };
+        let result = meta.camera_folder_name().unwrap();
+        assert!(!result.contains('/'));
+        assert!(!result.contains(':'));
+        assert!(!result.contains('*'));
+    }
+
+    #[test]
+    fn test_camera_folder_name_falls_back_to_make() {
+        let meta = ImageMetadata {
+            camera_make: Some("Sony".to_string()),
+            camera_model: None,
+            ..Default::default()
+        };
+        assert_eq!(meta.camera_folder_name(), Some("Sony".to_string()));
+    }
+
+    #[test]
+    fn test_camera_folder_name_none() {
+        let meta = ImageMetadata::default();
+        assert_eq!(meta.camera_folder_name(), None);
+    }
+
+    #[test]
+    fn test_audio_artist_folder_name() {
+        let meta = AudioMetadata {
+            artist: Some("Taylor Swift".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            meta.artist_folder_name(),
+            Some("Taylor Swift".to_string())
+        );
+    }
+
+    #[test]
+    fn test_audio_artist_folder_name_sanitizes() {
+        let meta = AudioMetadata {
+            artist: Some("AC/DC".to_string()),
+            ..Default::default()
+        };
+        let result = meta.artist_folder_name().unwrap();
+        assert!(!result.contains('/'));
+    }
+
+    #[test]
+    fn test_audio_album_folder_name() {
+        let meta = AudioMetadata {
+            album: Some("1989".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(meta.album_folder_name(), Some("1989".to_string()));
+    }
+
+    #[test]
+    fn test_audio_folder_name_empty_string() {
+        let meta = AudioMetadata {
+            artist: Some("   ".to_string()),
+            album: Some("".to_string()),
+            ..Default::default()
+        };
+        // Empty or whitespace-only should return None
+        assert_eq!(meta.artist_folder_name(), None);
+        assert_eq!(meta.album_folder_name(), None);
+    }
+
+    #[test]
+    fn test_image_metadata_default() {
+        let meta = ImageMetadata::default();
+        assert!(meta.camera_make.is_none());
+        assert!(meta.camera_model.is_none());
+        assert!(meta.date_taken.is_none());
+        assert!(meta.gps_latitude.is_none());
+        assert!(meta.gps_longitude.is_none());
+    }
+
+    #[test]
+    fn test_audio_metadata_default() {
+        let meta = AudioMetadata::default();
+        assert!(meta.artist.is_none());
+        assert!(meta.album.is_none());
+        assert!(meta.title.is_none());
+        assert!(meta.genre.is_none());
+        assert!(meta.year.is_none());
     }
 }
