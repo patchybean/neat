@@ -9,6 +9,7 @@ mod error;
 mod logger;
 mod organizer;
 mod scanner;
+mod tui;
 mod watcher;
 
 use std::fs;
@@ -83,6 +84,10 @@ fn main() -> Result<()> {
 
         Commands::Config { action } => {
             cmd_config(action)?;
+        }
+
+        Commands::Tui { path } => {
+            tui::run_tui(&path)?;
         }
     }
 

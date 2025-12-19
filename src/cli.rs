@@ -137,6 +137,13 @@ pub enum Commands {
         #[command(subcommand)]
         action: ConfigAction,
     },
+
+    /// Launch interactive TUI mode
+    Tui {
+        /// Target directory to browse
+        #[arg(default_value = ".")]
+        path: PathBuf,
+    },
 }
 
 #[derive(Subcommand)]
