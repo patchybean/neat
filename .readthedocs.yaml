@@ -7,8 +7,10 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.11"
-  commands:
-    # Download pre-built mdbook binary
-    - mkdir -p $HOME/.local/bin
-    - curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C $HOME/.local/bin
-    - $HOME/.local/bin/mdbook build docs --dest-dir $READTHEDOCS_OUTPUT/html
+
+mkdocs:
+  configuration: docs/mkdocs.yml
+
+python:
+  install:
+    - requirements: docs/requirements.txt

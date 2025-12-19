@@ -1,0 +1,78 @@
+site_name: NeatCLI
+site_url: https://neatcli.readthedocs.io
+site_description: A smart CLI tool to organize and clean up messy directories
+site_author: Patchy Bean
+repo_url: https://github.com/patchybean/neatcli
+repo_name: patchybean/neatcli
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Configuration: getting-started/configuration.md
+  - Commands:
+    - organize: commands/organize.md
+    - clean: commands/clean.md
+    - duplicates: commands/duplicates.md
+    - similar: commands/similar.md
+    - stats: commands/stats.md
+    - watch: commands/watch.md
+    - undo: commands/undo.md
+    - config: commands/config.md
+    - tui: commands/tui.md
+  - Reference:
+    - Filters: reference/filters.md
+    - Size & Date Filters: reference/size-date.md
+    - MIME Types: reference/mime-types.md
+  - Examples:
+    - Common Workflows: examples/workflows.md
+    - Photo Organization: examples/photos.md
+    - Music Library: examples/music.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/patchybean/neatcli
+
+copyright: Copyright &copy; 2024 Patchy Bean
