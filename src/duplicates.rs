@@ -15,6 +15,7 @@ use crate::scanner::{format_size, FileInfo};
 /// A group of duplicate files
 #[derive(Debug)]
 pub struct DuplicateGroup {
+    #[allow(dead_code)]
     pub hash: String,
     pub files: Vec<FileInfo>,
     pub size: u64,
@@ -58,7 +59,7 @@ pub fn find_duplicates(files: &[FileInfo]) -> Result<Vec<DuplicateGroup>> {
 
     // Step 2: Hash files with same size
     let total_files: usize = potential_dups.iter().map(|g| g.len()).sum();
-    
+
     let pb = ProgressBar::new(total_files as u64);
     pb.set_style(
         ProgressStyle::default_bar()
@@ -138,7 +139,11 @@ pub fn display_duplicates(groups: &[DuplicateGroup]) {
         );
 
         for (j, file) in group.files.iter().enumerate() {
-            let marker = if j == 0 { "●".green() } else { "○".yellow() };
+            let marker = if j == 0 {
+                "●".green()
+            } else {
+                "○".yellow()
+            };
             println!("    {} {}", marker, file.path.display());
         }
     }
@@ -229,21 +234,21 @@ mod tests {
     #[test]
     fn test_find_duplicates_no_duplicates() {
         let dir = tempdir().unwrap();
-        
+
         let file1 = dir.path().join("a.txt");
         let file2 = dir.path().join("b.txt");
-        
+
         let mut f1 = File::create(&file1).unwrap();
         write!(f1, "content A").unwrap();
-        
+
         let mut f2 = File::create(&file2).unwrap();
         write!(f2, "content B").unwrap();
-        
+
         let files = vec![
             FileInfo::from_path(&file1).unwrap(),
             FileInfo::from_path(&file2).unwrap(),
         ];
-        
+
         let result = find_duplicates(&files).unwrap();
         assert!(result.is_empty()); // Different content, no duplicates
     }
@@ -251,21 +256,21 @@ mod tests {
     #[test]
     fn test_find_duplicates_with_duplicates() {
         let dir = tempdir().unwrap();
-        
+
         let file1 = dir.path().join("a.txt");
         let file2 = dir.path().join("b.txt");
-        
+
         let mut f1 = File::create(&file1).unwrap();
         write!(f1, "same content").unwrap();
-        
+
         let mut f2 = File::create(&file2).unwrap();
         write!(f2, "same content").unwrap();
-        
+
         let files = vec![
             FileInfo::from_path(&file1).unwrap(),
             FileInfo::from_path(&file2).unwrap(),
         ];
-        
+
         let result = find_duplicates(&files).unwrap();
         assert_eq!(result.len(), 1); // One duplicate group
         assert_eq!(result[0].files.len(), 2);
@@ -274,18 +279,18 @@ mod tests {
     #[test]
     fn test_find_duplicates_empty_files_skipped() {
         let dir = tempdir().unwrap();
-        
+
         let file1 = dir.path().join("empty1.txt");
         let file2 = dir.path().join("empty2.txt");
-        
+
         File::create(&file1).unwrap(); // Empty file
         File::create(&file2).unwrap(); // Empty file
-        
+
         let files = vec![
             FileInfo::from_path(&file1).unwrap(),
             FileInfo::from_path(&file2).unwrap(),
         ];
-        
+
         let result = find_duplicates(&files).unwrap();
         assert!(result.is_empty()); // Empty files are skipped
     }
@@ -294,12 +299,12 @@ mod tests {
     fn test_hash_file() {
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("test.txt");
-        
+
         let mut file = File::create(&file_path).unwrap();
         write!(file, "hello world").unwrap();
-        
+
         let hash = hash_file(&file_path).unwrap();
-        
+
         // SHA256 of "hello world" should be consistent
         assert!(!hash.is_empty());
         assert_eq!(hash.len(), 64); // SHA256 hex is 64 chars

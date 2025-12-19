@@ -49,16 +49,16 @@ impl History {
     /// Load history from file
     pub fn load() -> Result<Self> {
         let path = Self::history_path()?;
-        
+
         if !path.exists() {
             return Ok(History::default());
         }
 
         let file = File::open(&path).context("Failed to open history file")?;
         let reader = BufReader::new(file);
-        let history: History = serde_json::from_reader(reader)
-            .context("Failed to parse history file")?;
-        
+        let history: History =
+            serde_json::from_reader(reader).context("Failed to parse history file")?;
+
         Ok(history)
     }
 
@@ -67,8 +67,7 @@ impl History {
         let path = Self::history_path()?;
         let file = File::create(&path).context("Failed to create history file")?;
         let writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(writer, self)
-            .context("Failed to write history file")?;
+        serde_json::to_writer_pretty(writer, self).context("Failed to write history file")?;
         Ok(())
     }
 
@@ -144,6 +143,7 @@ impl Logger {
     }
 
     /// Get the count of logged operations
+    #[allow(dead_code)]
     pub fn count(&self) -> usize {
         self.operations.len()
     }

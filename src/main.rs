@@ -37,7 +37,15 @@ fn main() -> Result<()> {
             dry_run,
             execute,
         } => {
-            cmd_organize(&path, by_type, by_date, by_extension, dry_run, execute, cli.verbose)?;
+            cmd_organize(
+                &path,
+                by_type,
+                by_date,
+                by_extension,
+                dry_run,
+                execute,
+                cli.verbose,
+            )?;
         }
 
         Commands::Clean {
@@ -97,7 +105,7 @@ fn main() -> Result<()> {
 /// Organize command handler
 fn cmd_organize(
     path: &Path,
-    by_type: bool,
+    _by_type: bool,
     by_date: bool,
     by_extension: bool,
     dry_run: bool,
@@ -119,7 +127,8 @@ fn cmd_organize(
         OrganizeMode::ByExtension => "extension",
     };
 
-    let canonical_path = path.canonicalize()
+    let canonical_path = path
+        .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
 
     println!(
@@ -144,7 +153,11 @@ fn cmd_organize(
     }
 
     if verbose {
-        println!("  Found {} files ({})", files.len(), format_size(total_size(&files)));
+        println!(
+            "  Found {} files ({})",
+            files.len(),
+            format_size(total_size(&files))
+        );
     }
 
     // Plan moves
@@ -174,7 +187,8 @@ fn cmd_clean(
     dry_run: bool,
     execute: bool,
 ) -> Result<()> {
-    let canonical_path = path.canonicalize()
+    let canonical_path = path
+        .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
 
     if let Some(duration_str) = older_than {
@@ -211,7 +225,7 @@ fn cmd_clean(
         );
 
         let empty_dirs = cleaner::find_empty_dirs(&canonical_path)?;
-        
+
         if empty_dirs.is_empty() {
             println!("{}", "No empty folders found.".green());
         } else {
@@ -219,7 +233,11 @@ fn cmd_clean(
             for dir in &empty_dirs {
                 println!("  {} {}", "○".yellow(), dir.display());
             }
-            println!("\n{} {} empty folders found", "Summary:".bold(), empty_dirs.len());
+            println!(
+                "\n{} {} empty folders found",
+                "Summary:".bold(),
+                empty_dirs.len()
+            );
 
             if execute && !dry_run {
                 for dir in empty_dirs {
@@ -236,7 +254,8 @@ fn cmd_clean(
 
 /// Duplicates command handler
 fn cmd_duplicates(path: &Path, delete: bool, dry_run: bool, execute: bool) -> Result<()> {
-    let canonical_path = path.canonicalize()
+    let canonical_path = path
+        .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
 
     println!(
@@ -269,7 +288,12 @@ fn cmd_duplicates(path: &Path, delete: bool, dry_run: bool, execute: bool) -> Re
                 // Skip the first file (the one we keep)
                 for file in group.files.iter().skip(1) {
                     if let Err(e) = fs::remove_file(&file.path) {
-                        eprintln!("{} Failed to delete {}: {}", "✗".red(), file.path.display(), e);
+                        eprintln!(
+                            "{} Failed to delete {}: {}",
+                            "✗".red(),
+                            file.path.display(),
+                            e
+                        );
                     } else {
                         deleted += 1;
                     }
@@ -291,7 +315,8 @@ fn cmd_stats(path: &Path) -> Result<()> {
     use crate::classifier::Classifier;
     use std::collections::HashMap;
 
-    let canonical_path = path.canonicalize()
+    let canonical_path = path
+        .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
 
     println!(
@@ -319,14 +344,16 @@ fn cmd_stats(path: &Path) -> Result<()> {
     let mut by_category: HashMap<String, (usize, u64)> = HashMap::new();
     for file in &files {
         let category = classifier.classify(file.extension.as_deref());
-        let entry = by_category.entry(category.folder_name().to_string()).or_insert((0, 0));
+        let entry = by_category
+            .entry(category.folder_name().to_string())
+            .or_insert((0, 0));
         entry.0 += 1;
         entry.1 += file.size;
     }
 
     // Sort by count
     let mut categories: Vec<_> = by_category.into_iter().collect();
-    categories.sort_by(|a, b| b.1.0.cmp(&a.1.0));
+    categories.sort_by(|a, b| b.1 .0.cmp(&a.1 .0));
 
     println!("{}", "Files by Type:".bold());
     println!("{}", "─".repeat(50));
@@ -362,7 +389,8 @@ fn cmd_stats(path: &Path) -> Result<()> {
     println!("\n{}", "Oldest Files:".bold());
     println!("{}", "─".repeat(50));
     for file in sorted_files.iter().take(10) {
-        let age = file.modified
+        let age = file
+            .modified
             .elapsed()
             .map(|d| {
                 let days = d.as_secs() / 86400;
@@ -376,11 +404,7 @@ fn cmd_stats(path: &Path) -> Result<()> {
             })
             .unwrap_or_else(|_| "unknown".to_string());
 
-        println!(
-            "  {:>10}  {}",
-            age.yellow(),
-            file.name.dimmed()
-        );
+        println!("  {:>10}  {}", age.yellow(), file.name.dimmed());
     }
 
     // Summary
@@ -425,7 +449,7 @@ fn cmd_undo() -> Result<()> {
                     if let Some(parent) = op.from.parent() {
                         fs::create_dir_all(parent).ok();
                     }
-                    
+
                     match fs::rename(&op.to, &op.from) {
                         Ok(_) => undone += 1,
                         Err(e) => {
@@ -551,7 +575,7 @@ fn cmd_config(action: ConfigAction) -> Result<()> {
                     "⚠".yellow(),
                     config_path.display()
                 );
-                
+
                 let overwrite = dialoguer::Confirm::new()
                     .with_prompt("Overwrite?")
                     .default(false)
@@ -570,8 +594,14 @@ fn cmd_config(action: ConfigAction) -> Result<()> {
                 config_path.display().to_string().cyan()
             );
             println!("\nSample rules:");
-            println!("  {} Invoices: *invoice*.pdf → Documents/Invoices/{{year}}", "•".dimmed());
-            println!("  {} Screenshots: Screenshot*.png → Images/Screenshots/{{year}}-{{month}}", "•".dimmed());
+            println!(
+                "  {} Invoices: *invoice*.pdf → Documents/Invoices/{{year}}",
+                "•".dimmed()
+            );
+            println!(
+                "  {} Screenshots: Screenshot*.png → Images/Screenshots/{{year}}-{{month}}",
+                "•".dimmed()
+            );
         }
 
         ConfigAction::Show { path } => {
@@ -597,7 +627,7 @@ fn cmd_config(action: ConfigAction) -> Result<()> {
             }
 
             let config = NeatConfig::load(&config_path)?;
-            
+
             println!(
                 "{} Config: {}\n",
                 "→".cyan(),
@@ -609,7 +639,7 @@ fn cmd_config(action: ConfigAction) -> Result<()> {
             } else {
                 println!("{}", "Rules:".bold());
                 println!("{}", "─".repeat(60));
-                
+
                 for rule in &config.rules {
                     println!(
                         "  {} {} (priority: {})",

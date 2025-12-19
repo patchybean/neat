@@ -13,8 +13,7 @@ use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame, Terminal,
 };
 
@@ -32,6 +31,7 @@ pub enum ViewMode {
 
 /// Organize mode selection
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 pub enum SelectedMode {
     ByType,
     ByDate,
@@ -39,6 +39,7 @@ pub enum SelectedMode {
 }
 
 impl SelectedMode {
+    #[allow(clippy::wrong_self_convention)]
     fn to_organize_mode(&self) -> OrganizeMode {
         match self {
             SelectedMode::ByType => OrganizeMode::ByType,
@@ -162,7 +163,10 @@ impl App {
         let files_to_organize: Vec<FileInfo> = if self.selected.is_empty() {
             self.files.clone()
         } else {
-            self.selected.iter().filter_map(|&i| self.files.get(i).cloned()).collect()
+            self.selected
+                .iter()
+                .filter_map(|&i| self.files.get(i).cloned())
+                .collect()
         };
 
         self.planned_moves = plan_moves(
@@ -182,14 +186,14 @@ impl App {
     /// Execute moves
     pub fn execute_moves(&mut self) -> Result<()> {
         use crate::organizer::execute_moves;
-        
+
         let mode_name = self.organize_mode.name().to_lowercase().replace(" ", "-");
         execute_moves(&self.planned_moves, &format!("tui organize {}", mode_name))?;
-        
+
         self.status_message = format!("✓ Moved {} files", self.planned_moves.len());
         self.planned_moves.clear();
         self.view_mode = ViewMode::FileList;
-        
+
         // Refresh file list
         let options = ScanOptions {
             include_hidden: false,
@@ -198,11 +202,11 @@ impl App {
         };
         self.files = scan_directory(&self.path, &options)?;
         self.selected.clear();
-        
+
         if !self.files.is_empty() {
             self.list_state.select(Some(0));
         }
-        
+
         Ok(())
     }
 }
@@ -300,9 +304,9 @@ fn ui(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // Header
-            Constraint::Min(10),    // Main content
-            Constraint::Length(3),  // Status
+            Constraint::Length(3), // Header
+            Constraint::Min(10),   // Main content
+            Constraint::Length(3), // Status
         ])
         .split(f.area());
 
@@ -337,10 +341,14 @@ fn render_file_list(f: &mut Frame, app: &App, area: Rect) {
         .iter()
         .enumerate()
         .map(|(i, file)| {
-            let selected = if app.selected.contains(&i) { "[✓]" } else { "[ ]" };
+            let selected = if app.selected.contains(&i) {
+                "[✓]"
+            } else {
+                "[ ]"
+            };
             let category = app.classifier.classify(file.extension.as_deref());
             let icon = category_icon(&category);
-            
+
             let content = format!(
                 "{} {} {} ({:>8})",
                 selected,
@@ -348,13 +356,15 @@ fn render_file_list(f: &mut Frame, app: &App, area: Rect) {
                 file.name,
                 format_size(file.size)
             );
-            
+
             let style = if app.selected.contains(&i) {
-                Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
             };
-            
+
             ListItem::new(content).style(style)
         })
         .collect();
@@ -377,17 +387,22 @@ fn render_preview(f: &mut Frame, app: &App, area: Rect) {
         .iter()
         .map(|mv| {
             let from = mv.from.file_name().unwrap_or_default().to_string_lossy();
-            let to_folder = mv.to.parent()
+            let to_folder = mv
+                .to
+                .parent()
                 .and_then(|p| p.strip_prefix(&app.path).ok())
                 .map(|p| p.display().to_string())
                 .unwrap_or_default();
-            
+
             ListItem::new(format!("  {} → {}/", from, to_folder))
         })
         .collect();
 
-    let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title(" Preview (Enter=confirm, Esc=cancel) "));
+    let list = List::new(items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" Preview (Enter=confirm, Esc=cancel) "),
+    );
 
     f.render_widget(list, area);
 }
@@ -397,11 +412,11 @@ fn render_confirm(f: &mut Frame, app: &App, area: Rect) {
         "\n\n  Move {} files?\n\n  Press 'y' to confirm, 'n' to cancel",
         app.planned_moves.len()
     );
-    
+
     let paragraph = Paragraph::new(text)
         .style(Style::default().fg(Color::Yellow))
         .block(Block::default().borders(Borders::ALL).title(" Confirm "));
-    
+
     f.render_widget(paragraph, area);
 }
 

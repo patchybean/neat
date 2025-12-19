@@ -31,6 +31,7 @@ impl Category {
     }
 
     /// Get all categories
+    #[allow(dead_code)]
     pub fn all() -> &'static [Category] {
         &[
             Category::Images,
@@ -62,17 +63,24 @@ impl Classifier {
         let mut map = HashMap::new();
 
         // Images
-        for ext in ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp", "ico", "tiff", "heic", "raw"] {
+        for ext in [
+            "jpg", "jpeg", "png", "gif", "bmp", "svg", "webp", "ico", "tiff", "heic", "raw",
+        ] {
             map.insert(ext.to_string(), Category::Images);
         }
 
         // Documents
-        for ext in ["pdf", "doc", "docx", "txt", "rtf", "odt", "xls", "xlsx", "ppt", "pptx", "csv", "md", "epub"] {
+        for ext in [
+            "pdf", "doc", "docx", "txt", "rtf", "odt", "xls", "xlsx", "ppt", "pptx", "csv", "md",
+            "epub",
+        ] {
             map.insert(ext.to_string(), Category::Documents);
         }
 
         // Videos
-        for ext in ["mp4", "avi", "mov", "mkv", "wmv", "flv", "webm", "m4v", "mpeg", "mpg"] {
+        for ext in [
+            "mp4", "avi", "mov", "mkv", "wmv", "flv", "webm", "m4v", "mpeg", "mpg",
+        ] {
             map.insert(ext.to_string(), Category::Videos);
         }
 
@@ -82,12 +90,18 @@ impl Classifier {
         }
 
         // Archives
-        for ext in ["zip", "tar", "gz", "rar", "7z", "bz2", "xz", "tgz", "dmg", "iso"] {
+        for ext in [
+            "zip", "tar", "gz", "rar", "7z", "bz2", "xz", "tgz", "dmg", "iso",
+        ] {
             map.insert(ext.to_string(), Category::Archives);
         }
 
         // Code
-        for ext in ["rs", "py", "js", "ts", "go", "java", "c", "cpp", "h", "hpp", "cs", "rb", "php", "swift", "kt", "scala", "html", "css", "scss", "vue", "jsx", "tsx", "sh", "bash", "zsh", "fish"] {
+        for ext in [
+            "rs", "py", "js", "ts", "go", "java", "c", "cpp", "h", "hpp", "cs", "rb", "php",
+            "swift", "kt", "scala", "html", "css", "scss", "vue", "jsx", "tsx", "sh", "bash",
+            "zsh", "fish",
+        ] {
             map.insert(ext.to_string(), Category::Code);
         }
 
@@ -112,6 +126,7 @@ impl Classifier {
     }
 
     /// Get the category for a file extension
+    #[allow(dead_code)]
     pub fn get_category(&self, extension: &str) -> Category {
         self.classify(Some(extension))
     }

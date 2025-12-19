@@ -4,6 +4,7 @@ use thiserror::Error;
 
 /// Errors that can occur during Neat operations
 #[derive(Error, Debug)]
+#[allow(dead_code)]
 pub enum NeatError {
     #[error("Path does not exist: {0}")]
     PathNotFound(String),

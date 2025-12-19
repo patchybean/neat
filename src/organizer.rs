@@ -9,12 +9,13 @@ use chrono::{Datelike, TimeZone, Utc};
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
 
-use crate::classifier::{Category, Classifier};
+use crate::classifier::Classifier;
 use crate::logger::Logger;
 use crate::scanner::{format_size, FileInfo};
 
 /// Organization mode
 #[derive(Debug, Clone, Copy)]
+#[allow(clippy::enum_variant_names)]
 pub enum OrganizeMode {
     ByType,
     ByDate,
@@ -39,11 +40,7 @@ pub struct OrganizeResult {
 }
 
 /// Plan file moves based on the organization mode
-pub fn plan_moves(
-    files: &[FileInfo],
-    base_path: &Path,
-    mode: OrganizeMode,
-) -> Vec<PlannedMove> {
+pub fn plan_moves(files: &[FileInfo], base_path: &Path, mode: OrganizeMode) -> Vec<PlannedMove> {
     let classifier = Classifier::new();
     let mut moves = Vec::new();
 
@@ -54,14 +51,15 @@ pub fn plan_moves(
                 base_path.join(category.folder_name()).join(&file.name)
             }
             OrganizeMode::ByDate => {
-                let datetime = file.modified
+                let datetime = file
+                    .modified
                     .duration_since(std::time::UNIX_EPOCH)
                     .map(|d| Utc.timestamp_opt(d.as_secs() as i64, 0).unwrap())
                     .unwrap_or_else(|_| Utc::now());
-                
+
                 let year = datetime.year().to_string();
                 let month = format!("{:02}", datetime.month());
-                
+
                 base_path.join(year).join(month).join(&file.name)
             }
             OrganizeMode::ByExtension => {
@@ -107,14 +105,18 @@ pub fn preview_moves(moves: &[PlannedMove], base_path: &Path) {
     for folder in folders {
         let files = &by_folder[folder];
         let folder_name = folder.strip_prefix(base_path).unwrap_or(folder);
-        println!("\n  {} ({} files)", folder_name.display().to_string().green().bold(), files.len());
-        
+        println!(
+            "\n  {} ({} files)",
+            folder_name.display().to_string().green().bold(),
+            files.len()
+        );
+
         // Show first 5 files in each folder
         for mv in files.iter().take(5) {
             let from_name = mv.from.file_name().unwrap_or_default().to_string_lossy();
             println!("    {} {}", "→".dimmed(), from_name);
         }
-        
+
         if files.len() > 5 {
             println!("    {} ... and {} more", "→".dimmed(), files.len() - 5);
         }
@@ -144,7 +146,9 @@ pub fn execute_moves(moves: &[PlannedMove], command_name: &str) -> Result<Organi
     let pb = ProgressBar::new(moves.len() as u64);
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+            .template(
+                "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+            )
             .unwrap()
             .progress_chars("█▓░"),
     );
@@ -193,7 +197,10 @@ fn resolve_conflict(path: &Path) -> PathBuf {
     }
 
     let stem = path.file_stem().unwrap_or_default().to_string_lossy();
-    let extension = path.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    let extension = path
+        .extension()
+        .map(|e| format!(".{}", e.to_string_lossy()))
+        .unwrap_or_default();
     let parent = path.parent().unwrap_or(Path::new("."));
 
     let mut counter = 1;
@@ -211,7 +218,7 @@ fn resolve_conflict(path: &Path) -> PathBuf {
 pub fn print_results(result: &OrganizeResult) {
     println!("\n{}", "Results:".bold().green());
     println!("{}", "─".repeat(40));
-    
+
     if result.moved > 0 {
         println!(
             "  {} {} files moved ({})",
@@ -268,7 +275,7 @@ mod tests {
         let moves = plan_moves(&files, base, OrganizeMode::ByType);
 
         assert_eq!(moves.len(), 3);
-        
+
         // Check destinations contain correct category folders
         assert!(moves[0].to.to_string_lossy().contains("Images"));
         assert!(moves[1].to.to_string_lossy().contains("Documents"));
@@ -287,7 +294,7 @@ mod tests {
         let moves = plan_moves(&files, base, OrganizeMode::ByExtension);
 
         assert_eq!(moves.len(), 3);
-        
+
         // Check destinations use uppercase extension folders
         assert!(moves[0].to.to_string_lossy().contains("TXT"));
         assert!(moves[1].to.to_string_lossy().contains("TXT"));
@@ -296,9 +303,7 @@ mod tests {
 
     #[test]
     fn test_plan_moves_no_extension() {
-        let files = vec![
-            make_file_info("Makefile", None, 100),
-        ];
+        let files = vec![make_file_info("Makefile", None, 100)];
 
         let base = Path::new("/base");
         let moves = plan_moves(&files, base, OrganizeMode::ByExtension);
@@ -329,7 +334,7 @@ mod tests {
 
         let base = Path::new("/base");
         let moves = plan_moves(&files, base, OrganizeMode::ByType);
-        
+
         // Should skip since already in correct place
         assert!(moves.is_empty());
     }

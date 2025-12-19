@@ -6,13 +6,13 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use colored::*;
-use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::RecursiveMode;
 use notify_debouncer_mini::{new_debouncer, DebouncedEventKind};
 
 use crate::classifier::Classifier;
 use crate::config::Config as NeatConfig;
 use crate::organizer::{execute_moves, plan_moves, OrganizeMode, PlannedMove};
-use crate::scanner::{FileInfo, ScanOptions};
+use crate::scanner::FileInfo;
 
 /// Watch a directory and auto-organize new files
 pub fn watch_directory(
@@ -21,7 +21,8 @@ pub fn watch_directory(
     config: Option<&NeatConfig>,
     auto_execute: bool,
 ) -> Result<()> {
-    let canonical_path = path.canonicalize()
+    let canonical_path = path
+        .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
 
     println!(
@@ -35,15 +36,15 @@ pub fn watch_directory(
     let (tx, rx) = channel();
 
     // Create a debouncer to avoid processing the same file multiple times
-    let mut debouncer = new_debouncer(Duration::from_secs(2), tx)
-        .context("Failed to create file watcher")?;
+    let mut debouncer =
+        new_debouncer(Duration::from_secs(2), tx).context("Failed to create file watcher")?;
 
     debouncer
         .watcher()
         .watch(&canonical_path, RecursiveMode::NonRecursive)
         .context("Failed to watch directory")?;
 
-    let classifier = Classifier::new();
+    let _classifier = Classifier::new();
 
     loop {
         match rx.recv() {
@@ -51,12 +52,12 @@ pub fn watch_directory(
                 for event in events {
                     if event.kind == DebouncedEventKind::Any {
                         let file_path = &event.path;
-                        
+
                         // Skip directories and hidden files
                         if file_path.is_dir() {
                             continue;
                         }
-                        
+
                         if let Some(name) = file_path.file_name() {
                             if name.to_string_lossy().starts_with('.') {
                                 continue;
@@ -104,7 +105,7 @@ pub fn watch_directory(
                                     size: file_info.size,
                                 }]
                             } else {
-                                plan_moves(&[file_info.clone()], &canonical_path, mode)
+                                plan_moves(std::slice::from_ref(&file_info), &canonical_path, mode)
                             };
 
                             if moves.is_empty() {
@@ -113,7 +114,9 @@ pub fn watch_directory(
                             }
 
                             let mv = &moves[0];
-                            let dest_folder = mv.to.parent()
+                            let dest_folder = mv
+                                .to
+                                .parent()
                                 .map(|p| p.strip_prefix(&canonical_path).unwrap_or(p))
                                 .map(|p| p.display().to_string())
                                 .unwrap_or_default();

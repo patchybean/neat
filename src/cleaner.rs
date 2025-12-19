@@ -15,7 +15,7 @@ use crate::scanner::{format_size, FileInfo};
 /// Parse a duration string (e.g., "30d", "7d", "1w")
 pub fn parse_duration(s: &str) -> Result<Duration> {
     let s = s.trim().to_lowercase();
-    
+
     if s.is_empty() {
         bail!("Duration cannot be empty");
     }
@@ -32,7 +32,10 @@ pub fn parse_duration(s: &str) -> Result<Duration> {
     };
 
     let num: u64 = num_str.parse().map_err(|_| {
-        anyhow::anyhow!("Invalid duration format: {}. Use formats like 30d, 7d, 1w", s)
+        anyhow::anyhow!(
+            "Invalid duration format: {}. Use formats like 30d, 7d, 1w",
+            s
+        )
     })?;
 
     let seconds = match unit {
@@ -50,10 +53,7 @@ pub fn find_old_files(files: &[FileInfo], max_age: Duration) -> Vec<&FileInfo> {
     let now = SystemTime::now();
     let cutoff = now - max_age;
 
-    files
-        .iter()
-        .filter(|f| f.modified < cutoff)
-        .collect()
+    files.iter().filter(|f| f.modified < cutoff).collect()
 }
 
 /// Preview files to be cleaned
@@ -69,7 +69,12 @@ pub fn preview_clean(files: &[&FileInfo], duration_str: &str) {
 
     let total_size: u64 = files.iter().map(|f| f.size).sum();
 
-    println!("\n{}", format!("Files older than {}:", duration_str).bold().yellow());
+    println!(
+        "\n{}",
+        format!("Files older than {}:", duration_str)
+            .bold()
+            .yellow()
+    );
     println!("{}", "─".repeat(60));
 
     for (i, file) in files.iter().enumerate() {
@@ -78,9 +83,10 @@ pub fn preview_clean(files: &[&FileInfo], duration_str: &str) {
             break;
         }
 
-        let age = file.modified
+        let age = file
+            .modified
             .elapsed()
-            .map(|d| format_age(d))
+            .map(format_age)
             .unwrap_or_else(|_| "unknown".to_string());
 
         println!(
@@ -150,7 +156,12 @@ pub fn execute_clean(files: &[&FileInfo], force: bool) -> Result<(usize, u64)> {
                 logger.log_delete(file.path.clone());
             }
             Err(e) => {
-                eprintln!("{} Failed to delete {}: {}", "✗".red(), file.path.display(), e);
+                eprintln!(
+                    "{} Failed to delete {}: {}",
+                    "✗".red(),
+                    file.path.display(),
+                    e
+                );
             }
         }
     }
@@ -175,13 +186,16 @@ pub fn find_empty_dirs(path: &Path) -> Result<Vec<std::path::PathBuf>> {
     Ok(empty_dirs)
 }
 
-fn find_empty_dirs_recursive(path: &Path, empty_dirs: &mut Vec<std::path::PathBuf>) -> Result<bool> {
+fn find_empty_dirs_recursive(
+    path: &Path,
+    empty_dirs: &mut Vec<std::path::PathBuf>,
+) -> Result<bool> {
     if !path.is_dir() {
         return Ok(false);
     }
 
     let entries: Vec<_> = fs::read_dir(path)?.filter_map(|e| e.ok()).collect();
-    
+
     if entries.is_empty() {
         empty_dirs.push(path.to_path_buf());
         return Ok(true);

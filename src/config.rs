@@ -78,8 +78,9 @@ impl Rule {
     /// Get the destination path for a file
     pub fn get_destination(&self, base_path: &Path, filename: &str, ext: Option<&str>) -> PathBuf {
         let now = Utc::now();
-        
-        let dest = self.destination
+
+        let dest = self
+            .destination
             .replace("{year}", &now.year().to_string())
             .replace("{month}", &format!("{:02}", now.month()))
             .replace("{day}", &format!("{:02}", now.day()))
@@ -94,10 +95,10 @@ impl Config {
     pub fn load(path: &Path) -> Result<Self> {
         let content = fs::read_to_string(path)
             .with_context(|| format!("Failed to read config file: {:?}", path))?;
-        
+
         let config: Config = toml::from_str(&content)
             .with_context(|| format!("Failed to parse config file: {:?}", path))?;
-        
+
         Ok(config)
     }
 
@@ -152,16 +153,16 @@ impl Config {
             settings: Settings::default(),
         };
 
-        let content = toml::to_string_pretty(&sample)
-            .context("Failed to serialize sample config")?;
-        
+        let content =
+            toml::to_string_pretty(&sample).context("Failed to serialize sample config")?;
+
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
-        
+
         fs::write(path, content)
             .with_context(|| format!("Failed to write config file: {:?}", path))?;
-        
+
         Ok(())
     }
 }

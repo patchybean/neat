@@ -15,6 +15,7 @@ pub struct FileInfo {
     pub extension: Option<String>,
     pub size: u64,
     pub modified: SystemTime,
+    #[allow(dead_code)]
     pub created: Option<SystemTime>,
 }
 
@@ -29,9 +30,7 @@ impl FileInfo {
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_default();
 
-        let extension = path
-            .extension()
-            .map(|e| e.to_string_lossy().to_lowercase());
+        let extension = path.extension().map(|e| e.to_string_lossy().to_lowercase());
 
         Ok(FileInfo {
             path: path.to_path_buf(),
@@ -79,10 +78,7 @@ pub fn scan_directory(path: &Path, options: &ScanOptions) -> Result<Vec<FileInfo
             if options.include_hidden {
                 true
             } else {
-                !entry
-                    .file_name()
-                    .to_string_lossy()
-                    .starts_with('.')
+                !entry.file_name().to_string_lossy().starts_with('.')
             }
         })
         .filter_map(|entry| FileInfo::from_path(entry.path()).ok())
@@ -193,19 +189,25 @@ mod tests {
     #[test]
     fn test_scan_directory_hidden_files() {
         let dir = tempdir().unwrap();
-        
+
         // Create regular file
         File::create(dir.path().join("visible.txt")).unwrap();
         // Create hidden file
         File::create(dir.path().join(".hidden")).unwrap();
 
         // Without hidden files
-        let options = ScanOptions { include_hidden: false, ..Default::default() };
+        let options = ScanOptions {
+            include_hidden: false,
+            ..Default::default()
+        };
         let result = scan_directory(dir.path(), &options).unwrap();
         assert_eq!(result.len(), 1);
 
         // With hidden files
-        let options = ScanOptions { include_hidden: true, ..Default::default() };
+        let options = ScanOptions {
+            include_hidden: true,
+            ..Default::default()
+        };
         let result = scan_directory(dir.path(), &options).unwrap();
         assert_eq!(result.len(), 2);
     }
@@ -215,17 +217,23 @@ mod tests {
         let dir = tempdir().unwrap();
         let subdir = dir.path().join("subdir");
         fs::create_dir(&subdir).unwrap();
-        
+
         File::create(dir.path().join("root.txt")).unwrap();
         File::create(subdir.join("nested.txt")).unwrap();
 
         // Depth 1 (only root)
-        let options = ScanOptions { max_depth: Some(1), ..Default::default() };
+        let options = ScanOptions {
+            max_depth: Some(1),
+            ..Default::default()
+        };
         let result = scan_directory(dir.path(), &options).unwrap();
         assert_eq!(result.len(), 1);
 
         // Depth 2 (includes subdir)
-        let options = ScanOptions { max_depth: Some(2), ..Default::default() };
+        let options = ScanOptions {
+            max_depth: Some(2),
+            ..Default::default()
+        };
         let result = scan_directory(dir.path(), &options).unwrap();
         assert_eq!(result.len(), 2);
     }
