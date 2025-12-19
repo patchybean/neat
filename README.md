@@ -1,5 +1,9 @@
 # 🧹 neatcli
 
+[![CI](https://github.com/patchybean/neat/actions/workflows/ci.yml/badge.svg)](https://github.com/patchybean/neat/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/patchybean/neat)](https://github.com/patchybean/neat/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A smart CLI tool to organize and clean up messy directories, built in Rust.
 
 ## ✨ Features
@@ -12,6 +16,7 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **Watch Mode** - Auto-organize new files as they appear
 - **Custom Rules** - Define your own organization rules via TOML config
 - **Undo Operations** - Rollback your last operation
+- **Interactive TUI** - Visual file browser with keyboard navigation
 - **Safe by Default** - Dry-run mode lets you preview changes before executing
 
 ## 📦 Installation
@@ -167,6 +172,7 @@ Commands:
   history     Show operation history
   watch       Watch directory and auto-organize new files
   config      Manage configuration (init, show)
+  tui         Interactive TUI file browser
   help        Print help
 
 Options:
@@ -191,4 +197,4 @@ RUST_BACKTRACE=1 cargo run -- organize . --by-type
 
 ## 📄 License
 
-MIT License
+MIT © Patchy Bean
