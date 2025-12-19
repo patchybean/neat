@@ -6,6 +6,10 @@ description = "A smart CLI tool to organize and clean up messy directories"
 license = "MIT"
 keywords = ["cli", "file-organizer", "cleanup", "utility"]
 categories = ["command-line-utilities", "filesystem"]
+repository = "https://github.com/patchybean/neat"
+homepage = "https://github.com/patchybean/neat"
+readme = "README.md"
+authors = ["Patchy Bean"]
 
 [dependencies]
 clap = { version = "4.4", features = ["derive"] }
