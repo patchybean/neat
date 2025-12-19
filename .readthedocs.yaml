@@ -8,6 +8,7 @@ build:
   tools:
     python: "3.11"
   commands:
-    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    - source $HOME/.cargo/env && cargo install mdbook --version 0.4.40
-    - source $HOME/.cargo/env && cd docs && mdbook build --dest-dir $READTHEDOCS_OUTPUT/html
+    # Download pre-built mdbook binary
+    - mkdir -p $HOME/.local/bin
+    - curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C $HOME/.local/bin
+    - $HOME/.local/bin/mdbook build docs --dest-dir $READTHEDOCS_OUTPUT/html
