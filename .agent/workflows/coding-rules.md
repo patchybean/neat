@@ -68,3 +68,12 @@ cargo test         # Run all tests
 1. GitHub Actions auto-builds binaries on tag push
 2. Update Homebrew formula with new SHA256
 3. Run `cargo publish` for crates.io
+
+### 10. Documentation
+- **Every new feature MUST have documentation**
+- Add docs in `docs/docs/` following MkDocs structure
+- Update `docs/mkdocs.yml` navigation if adding new pages
+- For new commands: `docs/docs/commands/<command>.md`
+- For new filters/options: update `docs/docs/reference/`
+- Commit docs with `docs:` prefix
+
