@@ -76,6 +76,14 @@ pub enum Commands {
         /// Maximum file size to include (e.g., 100MB, 1GB)
         #[arg(long)]
         max_size: Option<String>,
+
+        /// Only include files modified after this date (YYYY-MM-DD)
+        #[arg(long)]
+        after: Option<String>,
+
+        /// Only include files modified before this date (YYYY-MM-DD)
+        #[arg(long)]
+        before: Option<String>,
     },
 
     /// Clean old files from a directory
@@ -111,6 +119,14 @@ pub enum Commands {
         /// Maximum file size to include (e.g., 100MB, 1GB)
         #[arg(long)]
         max_size: Option<String>,
+
+        /// Only include files modified after this date (YYYY-MM-DD)
+        #[arg(long)]
+        after: Option<String>,
+
+        /// Only include files modified before this date (YYYY-MM-DD)
+        #[arg(long)]
+        before: Option<String>,
     },
 
     /// Find duplicate files by content
@@ -142,6 +158,14 @@ pub enum Commands {
         /// Maximum file size to include (e.g., 100MB, 1GB)
         #[arg(long)]
         max_size: Option<String>,
+
+        /// Only include files modified after this date (YYYY-MM-DD)
+        #[arg(long)]
+        after: Option<String>,
+
+        /// Only include files modified before this date (YYYY-MM-DD)
+        #[arg(long)]
+        before: Option<String>,
     },
 
     /// Find visually similar images using perceptual hashing

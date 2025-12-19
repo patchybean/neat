@@ -131,6 +131,21 @@ neatcli clean ~/Logs --max-size 10KB --exec
 neatcli duplicates ~/Movies --min-size 500MB
 ```
 
+### Filter by Date
+
+Filter files by modification date using `--after` and `--before` flags (format: YYYY-MM-DD).
+
+```bash
+# Organize only files modified after 2024-01-01
+neatcli organize ~/Downloads --after 2024-01-01
+
+# Clean files modified before 2024-06-01
+neatcli clean ~/Logs --before 2024-06-01 --execute
+
+# Find duplicates in a specific date range
+neatcli duplicates ~/Photos --after 2024-01-01 --before 2024-12-31
+```
+
 ### Clean Old Files
 
 ```bash

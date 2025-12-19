@@ -59,6 +59,10 @@ pub struct ScanOptions {
     pub min_size: Option<u64>,
     /// Maximum file size in bytes (None = no maximum)
     pub max_size: Option<u64>,
+    /// Only include files modified after this date (None = no filter)
+    pub after_date: Option<std::time::SystemTime>,
+    /// Only include files modified before this date (None = no filter)
+    pub before_date: Option<std::time::SystemTime>,
 }
 
 /// Load ignore patterns from .neatignore file in the given directory
@@ -138,6 +142,20 @@ pub fn scan_directory(path: &Path, options: &ScanOptions) -> Result<Vec<FileInfo
             }
             true
         })
+        // Apply date filters
+        .filter(|file| {
+            if let Some(after) = options.after_date {
+                if file.modified < after {
+                    return false;
+                }
+            }
+            if let Some(before) = options.before_date {
+                if file.modified > before {
+                    return false;
+                }
+            }
+            true
+        })
         .collect();
 
     Ok(files)
@@ -208,6 +226,34 @@ pub fn parse_size(s: &str) -> Result<u64, String> {
     }
 
     Ok((num * multiplier as f64) as u64)
+}
+
+/// Parse a date string to SystemTime
+/// Supports formats: "YYYY-MM-DD", "YYYY/MM/DD"
+pub fn parse_date(s: &str) -> Result<std::time::SystemTime, String> {
+    use chrono::{NaiveDate, TimeZone, Utc};
+
+    let s = s.trim();
+
+    // Try YYYY-MM-DD format
+    let date = if s.contains('-') {
+        NaiveDate::parse_from_str(s, "%Y-%m-%d")
+    } else if s.contains('/') {
+        NaiveDate::parse_from_str(s, "%Y/%m/%d")
+    } else {
+        return Err(format!(
+            "Invalid date format: {}. Use YYYY-MM-DD or YYYY/MM/DD",
+            s
+        ));
+    };
+
+    match date {
+        Ok(d) => {
+            let datetime = Utc.from_utc_datetime(&d.and_hms_opt(0, 0, 0).unwrap());
+            Ok(datetime.into())
+        }
+        Err(_) => Err(format!("Invalid date: {}. Use YYYY-MM-DD or YYYY/MM/DD", s)),
+    }
 }
 
 #[cfg(test)]

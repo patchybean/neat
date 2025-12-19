@@ -45,6 +45,8 @@ fn main() -> Result<()> {
             ignore,
             min_size,
             max_size,
+            after,
+            before,
         } => {
             cmd_organize(
                 &path,
@@ -61,6 +63,8 @@ fn main() -> Result<()> {
                 ignore,
                 min_size,
                 max_size,
+                after,
+                before,
             )?;
         }
 
@@ -73,6 +77,8 @@ fn main() -> Result<()> {
             trash,
             min_size,
             max_size,
+            after,
+            before,
         } => {
             cmd_clean(
                 &path,
@@ -83,6 +89,8 @@ fn main() -> Result<()> {
                 trash,
                 min_size,
                 max_size,
+                after,
+                before,
             )?;
         }
 
@@ -94,8 +102,12 @@ fn main() -> Result<()> {
             trash,
             min_size,
             max_size,
+            after,
+            before,
         } => {
-            cmd_duplicates(&path, delete, dry_run, execute, trash, min_size, max_size)?;
+            cmd_duplicates(
+                &path, delete, dry_run, execute, trash, min_size, max_size, after, before,
+            )?;
         }
 
         Commands::Similar {
@@ -168,8 +180,10 @@ fn cmd_organize(
     ignore: Vec<String>,
     min_size: Option<String>,
     max_size: Option<String>,
+    after: Option<String>,
+    before: Option<String>,
 ) -> Result<()> {
-    use crate::scanner::parse_size;
+    use crate::scanner::{parse_date, parse_size};
 
     // Determine mode
     let mode = if by_date {
@@ -219,6 +233,16 @@ fn cmd_organize(
         .transpose()
         .map_err(|e| anyhow::anyhow!("{}", e))?;
 
+    // Parse date filters
+    let after_date = after
+        .map(|s| parse_date(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    let before_date = before
+        .map(|s| parse_date(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
     // Load ignore patterns from .neatignore file and CLI
     let mut ignore_patterns = scanner::load_ignore_patterns(&canonical_path);
     ignore_patterns.extend(ignore);
@@ -231,6 +255,8 @@ fn cmd_organize(
         ignore_patterns,
         min_size: min_size_bytes,
         max_size: max_size_bytes,
+        after_date,
+        before_date,
     };
 
     let files = scan_directory(&canonical_path, &options)?;
@@ -278,8 +304,10 @@ fn cmd_clean(
     use_trash: bool,
     min_size: Option<String>,
     max_size: Option<String>,
+    after: Option<String>,
+    before: Option<String>,
 ) -> Result<()> {
-    use crate::scanner::parse_size;
+    use crate::scanner::{parse_date, parse_size};
 
     let canonical_path = path
         .canonicalize()
@@ -292,6 +320,16 @@ fn cmd_clean(
         .map_err(|e| anyhow::anyhow!("{}", e))?;
     let max_size_bytes = max_size
         .map(|s| parse_size(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    // Parse date filters
+    let after_date = after
+        .map(|s| parse_date(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    let before_date = before
+        .map(|s| parse_date(&s))
         .transpose()
         .map_err(|e| anyhow::anyhow!("{}", e))?;
 
@@ -312,6 +350,8 @@ fn cmd_clean(
             ignore_patterns: Vec::new(),
             min_size: min_size_bytes,
             max_size: max_size_bytes,
+            after_date,
+            before_date,
         };
 
         let files = scan_directory(&canonical_path, &options)?;
@@ -360,6 +400,7 @@ fn cmd_clean(
 }
 
 /// Duplicates command handler
+#[allow(clippy::too_many_arguments)]
 fn cmd_duplicates(
     path: &Path,
     delete: bool,
@@ -368,8 +409,10 @@ fn cmd_duplicates(
     use_trash: bool,
     min_size: Option<String>,
     max_size: Option<String>,
+    after: Option<String>,
+    before: Option<String>,
 ) -> Result<()> {
-    use crate::scanner::parse_size;
+    use crate::scanner::{parse_date, parse_size};
 
     let canonical_path = path
         .canonicalize()
@@ -382,6 +425,16 @@ fn cmd_duplicates(
         .map_err(|e| anyhow::anyhow!("{}", e))?;
     let max_size_bytes = max_size
         .map(|s| parse_size(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    // Parse date filters
+    let after_date = after
+        .map(|s| parse_date(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    let before_date = before
+        .map(|s| parse_date(&s))
         .transpose()
         .map_err(|e| anyhow::anyhow!("{}", e))?;
 
@@ -398,6 +451,8 @@ fn cmd_duplicates(
         ignore_patterns: Vec::new(),
         min_size: min_size_bytes,
         max_size: max_size_bytes,
+        after_date,
+        before_date,
     };
 
     let files = scan_directory(&canonical_path, &options)?;
@@ -485,6 +540,8 @@ fn cmd_similar(
         ignore_patterns: Vec::new(),
         min_size: None,
         max_size: None,
+        after_date: None,
+        before_date: None,
     };
 
     let files = scan_directory(&canonical_path, &options)?;
@@ -578,6 +635,8 @@ fn cmd_stats(path: &Path) -> Result<()> {
         ignore_patterns: Vec::new(),
         min_size: None,
         max_size: None,
+        after_date: None,
+        before_date: None,
     };
 
     let files = scan_directory(&canonical_path, &options)?;

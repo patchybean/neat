@@ -114,6 +114,8 @@ impl App {
             ignore_patterns: Vec::new(),
             min_size: None,
             max_size: None,
+            after_date: None,
+            before_date: None,
         };
 
         let canonical_path = path.canonicalize()?;
@@ -221,6 +223,8 @@ impl App {
             ignore_patterns: Vec::new(),
             min_size: None,
             max_size: None,
+            after_date: None,
+            before_date: None,
         };
         self.files = scan_directory(&self.path, &options)?;
         self.selected.clear();
