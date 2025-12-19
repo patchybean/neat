@@ -14,6 +14,7 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **EXIF Metadata** - Organize photos by camera model or date taken (from EXIF data)
 - **Audio Metadata** - Organize music by artist or album (from ID3/audio tags)
 - **Find Duplicates** - Detect duplicate files using SHA256 content hashing
+- **Find Similar Images** - Detect visually similar images using perceptual hashing
 - **Clean Old Files** - Remove files older than a specified duration
 - **Watch Mode** - Auto-organize new files as they appear
 - **Custom Rules** - Define your own organization rules via TOML config
@@ -95,6 +96,22 @@ neatcli duplicates ~/Downloads --delete --execute
 
 # Move duplicates to trash instead
 neatcli duplicates ~/Downloads --delete --trash --execute
+```
+
+### Find Similar Images
+
+```bash
+# Find visually similar images (perceptual hashing)
+neatcli similar ~/Photos
+
+# Use stricter matching (lower threshold = more strict)
+neatcli similar ~/Photos --threshold 5
+
+# Delete similar images (keeps first in each group)
+neatcli similar ~/Photos --delete --execute
+
+# Move similar images to trash
+neatcli similar ~/Photos --delete --trash --execute
 ```
 
 ### Clean Old Files

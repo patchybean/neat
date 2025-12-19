@@ -120,6 +120,33 @@ pub enum Commands {
         trash: bool,
     },
 
+    /// Find visually similar images using perceptual hashing
+    Similar {
+        /// Target directory to scan
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// Similarity threshold (0-256, lower = more strict, default: 10)
+        #[arg(long, short, default_value = "10")]
+        threshold: u32,
+
+        /// Delete similar images (keeps the first in each group)
+        #[arg(long)]
+        delete: bool,
+
+        /// Preview changes without executing
+        #[arg(long, short = 'n')]
+        dry_run: bool,
+
+        /// Actually execute the changes
+        #[arg(long, short)]
+        execute: bool,
+
+        /// Move similar images to trash instead of permanent deletion
+        #[arg(long)]
+        trash: bool,
+    },
+
     /// Show statistics about a directory
     Stats {
         /// Target directory to analyze

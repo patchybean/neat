@@ -167,6 +167,199 @@ pub fn display_duplicates(groups: &[DuplicateGroup]) {
     );
 }
 
+/// A group of visually similar images
+#[derive(Debug)]
+pub struct SimilarGroup {
+    /// Representative file (first in group)
+    pub representative: FileInfo,
+    /// Similar files
+    pub similar: Vec<(FileInfo, u32)>, // (file, hamming distance)
+}
+
+impl SimilarGroup {
+    /// Get total space used by similar files
+    pub fn similar_space(&self) -> u64 {
+        self.similar.iter().map(|(f, _)| f.size).sum()
+    }
+}
+
+/// Check if a file is a supported image format for perceptual hashing
+fn is_image_supported(path: &std::path::Path) -> bool {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_lowercase());
+
+    matches!(
+        ext.as_deref(),
+        Some("jpg") | Some("jpeg") | Some("png") | Some("gif") | Some("bmp") | Some("webp")
+    )
+}
+
+/// Find visually similar images using perceptual hashing
+#[allow(clippy::needless_range_loop)]
+pub fn find_similar_images(files: &[FileInfo], threshold: u32) -> Result<Vec<SimilarGroup>> {
+    use image_hasher::{HashAlg, HasherConfig};
+
+    // Filter to only image files
+    let images: Vec<&FileInfo> = files
+        .iter()
+        .filter(|f| is_image_supported(&f.path))
+        .collect();
+
+    if images.len() < 2 {
+        return Ok(Vec::new());
+    }
+
+    println!(
+        "  {} Calculating perceptual hashes for {} images...",
+        "→".cyan(),
+        images.len()
+    );
+
+    let pb = ProgressBar::new(images.len() as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} Hashing images [{bar:40.cyan/blue}] {pos}/{len}")
+            .unwrap()
+            .progress_chars("█▓░"),
+    );
+
+    // Configure hasher with DCT algorithm (good for finding similar images)
+    let hasher = HasherConfig::new()
+        .hash_alg(HashAlg::DoubleGradient)
+        .hash_size(16, 16)
+        .to_hasher();
+
+    // Calculate hashes for all images
+    let mut hashes: Vec<(&FileInfo, Option<image_hasher::ImageHash>)> = Vec::new();
+
+    for file in &images {
+        pb.inc(1);
+        let hash = image::open(&file.path)
+            .ok()
+            .map(|img| hasher.hash_image(&img));
+        hashes.push((file, hash));
+    }
+    pb.finish_and_clear();
+
+    // Find similar images
+    let mut groups: Vec<SimilarGroup> = Vec::new();
+    let mut used: std::collections::HashSet<usize> = std::collections::HashSet::new();
+
+    println!(
+        "  {} Comparing {} image pairs...",
+        "→".cyan(),
+        images.len() * (images.len() - 1) / 2
+    );
+
+    for i in 0..hashes.len() {
+        if used.contains(&i) {
+            continue;
+        }
+
+        let (file_i, hash_i) = &hashes[i];
+        let hash_i = match hash_i {
+            Some(h) => h,
+            None => continue,
+        };
+
+        let mut similar: Vec<(FileInfo, u32)> = Vec::new();
+
+        for j in (i + 1)..hashes.len() {
+            if used.contains(&j) {
+                continue;
+            }
+
+            let (file_j, hash_j) = &hashes[j];
+            let hash_j = match hash_j {
+                Some(h) => h,
+                None => continue,
+            };
+
+            let distance = hash_i.dist(hash_j);
+
+            if distance <= threshold {
+                similar.push(((*file_j).clone(), distance));
+                used.insert(j);
+            }
+        }
+
+        if !similar.is_empty() {
+            used.insert(i);
+            groups.push(SimilarGroup {
+                representative: (*file_i).clone(),
+                similar,
+            });
+        }
+    }
+
+    Ok(groups)
+}
+
+/// Display similar image groups
+pub fn display_similar_images(groups: &[SimilarGroup]) {
+    if groups.is_empty() {
+        println!("{}", "No similar images found.".green());
+        return;
+    }
+
+    let total_similar: usize = groups.iter().map(|g| g.similar.len()).sum();
+    let total_space: u64 = groups.iter().map(|g| g.similar_space()).sum();
+
+    println!("\n{}", "Similar Images Found:".bold().yellow());
+    println!("{}", "─".repeat(60));
+
+    for (i, group) in groups.iter().enumerate() {
+        if i >= 10 {
+            println!("\n... and {} more similar image groups", groups.len() - 10);
+            break;
+        }
+
+        println!(
+            "\n  {} ({} similar):",
+            format!("Group {}", i + 1).cyan().bold(),
+            group.similar.len()
+        );
+
+        // Show representative (keep this one)
+        println!(
+            "    {} {} ({})",
+            "●".green(),
+            group.representative.path.display(),
+            format_size(group.representative.size).dimmed()
+        );
+
+        // Show similar files
+        for (file, distance) in &group.similar {
+            println!(
+                "    {} {} ({}, {}% similar)",
+                "○".yellow(),
+                file.path.display(),
+                format_size(file.size).dimmed(),
+                100 - (distance * 100 / 256).min(100)
+            );
+        }
+    }
+
+    println!("\n{}", "─".repeat(60));
+    println!(
+        "\n{}: {} similar images in {} groups",
+        "Summary".bold(),
+        total_similar.to_string().yellow(),
+        groups.len().to_string().cyan()
+    );
+    println!(
+        "{}: {} used by similar images",
+        "Space".bold(),
+        format_size(total_space).yellow()
+    );
+    println!(
+        "\n{} Lower threshold = more strict matching (default: 10)",
+        "ℹ".blue()
+    );
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
