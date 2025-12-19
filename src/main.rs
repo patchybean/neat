@@ -6,6 +6,7 @@ mod cli;
 mod config;
 mod duplicates;
 mod error;
+mod export;
 mod logger;
 mod metadata;
 mod organizer;
@@ -104,9 +105,12 @@ fn main() -> Result<()> {
             max_size,
             after,
             before,
+            json,
+            csv,
         } => {
             cmd_duplicates(
-                &path, delete, dry_run, execute, trash, min_size, max_size, after, before,
+                &path, delete, dry_run, execute, trash, min_size, max_size, after, before, json,
+                csv,
             )?;
         }
 
@@ -121,8 +125,8 @@ fn main() -> Result<()> {
             cmd_similar(&path, threshold, delete, dry_run, execute, trash)?;
         }
 
-        Commands::Stats { path } => {
-            cmd_stats(&path)?;
+        Commands::Stats { path, json } => {
+            cmd_stats(&path, json)?;
         }
 
         Commands::Undo => {
@@ -411,6 +415,8 @@ fn cmd_duplicates(
     max_size: Option<String>,
     after: Option<String>,
     before: Option<String>,
+    json: bool,
+    csv: bool,
 ) -> Result<()> {
     use crate::scanner::{parse_date, parse_size};
 
@@ -438,11 +444,13 @@ fn cmd_duplicates(
         .transpose()
         .map_err(|e| anyhow::anyhow!("{}", e))?;
 
-    println!(
-        "{} Scanning {} for duplicate files...",
-        "→".cyan(),
-        canonical_path.display().to_string().bold()
-    );
+    if !json && !csv {
+        println!(
+            "{} Scanning {} for duplicate files...",
+            "→".cyan(),
+            canonical_path.display().to_string().bold()
+        );
+    }
 
     let options = ScanOptions {
         include_hidden: false,
@@ -456,9 +464,22 @@ fn cmd_duplicates(
     };
 
     let files = scan_directory(&canonical_path, &options)?;
-    println!("  Found {} files to analyze", files.len());
+    if !json && !csv {
+        println!("  Found {} files to analyze", files.len());
+    }
 
     let duplicates = find_duplicates(&files)?;
+
+    // Handle export formats
+    if json {
+        export::export_duplicates_json(&duplicates, &mut std::io::stdout())?;
+        return Ok(());
+    }
+    if csv {
+        export::export_duplicates_csv(&duplicates, &mut std::io::stdout())?;
+        return Ok(());
+    }
+
     display_duplicates(&duplicates);
 
     if delete && execute && !dry_run && !duplicates.is_empty() {
@@ -614,7 +635,7 @@ fn cmd_similar(
 }
 
 /// Stats command handler
-fn cmd_stats(path: &Path) -> Result<()> {
+fn cmd_stats(path: &Path, json: bool) -> Result<()> {
     use crate::classifier::Classifier;
     use std::collections::HashMap;
 
@@ -622,11 +643,13 @@ fn cmd_stats(path: &Path) -> Result<()> {
         .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
 
-    println!(
-        "{} Analyzing {}...\n",
-        "→".cyan(),
-        canonical_path.display().to_string().bold()
-    );
+    if !json {
+        println!(
+            "{} Analyzing {}...\n",
+            "→".cyan(),
+            canonical_path.display().to_string().bold()
+        );
+    }
 
     let options = ScanOptions {
         include_hidden: false,
@@ -642,7 +665,11 @@ fn cmd_stats(path: &Path) -> Result<()> {
     let files = scan_directory(&canonical_path, &options)?;
 
     if files.is_empty() {
-        println!("{}", "No files found.".yellow());
+        if json {
+            println!("{{\"total_files\": 0, \"total_size\": 0, \"categories\": []}}");
+        } else {
+            println!("{}", "No files found.".yellow());
+        }
         return Ok(());
     }
 
@@ -662,6 +689,24 @@ fn cmd_stats(path: &Path) -> Result<()> {
     // Sort by count
     let mut categories: Vec<_> = by_category.into_iter().collect();
     categories.sort_by(|a, b| b.1 .0.cmp(&a.1 .0));
+
+    // Handle JSON export
+    if json {
+        let stats = export::ExportStats {
+            total_files: files.len(),
+            total_size: total_size(&files),
+            categories: categories
+                .iter()
+                .map(|(name, (count, size))| export::CategoryStats {
+                    name: name.clone(),
+                    count: *count,
+                    size: *size,
+                })
+                .collect(),
+        };
+        export::export_stats_json(&stats, &mut std::io::stdout())?;
+        return Ok(());
+    }
 
     println!("{}", "Files by Type:".bold());
     println!("{}", "─".repeat(50));

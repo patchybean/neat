@@ -167,6 +167,19 @@ neatcli clean ~/Downloads --empty-folders --execute
 ```bash
 # Show directory statistics
 neatcli stats ~/Downloads
+
+# Export stats as JSON
+neatcli stats ~/Downloads --json
+```
+
+### Export Formats
+
+```bash
+# Export duplicates as JSON
+neatcli duplicates ~/Downloads --json
+
+# Export duplicates as CSV
+neatcli duplicates ~/Downloads --csv
 ```
 
 ### Undo

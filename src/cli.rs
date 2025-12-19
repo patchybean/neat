@@ -166,6 +166,14 @@ pub enum Commands {
         /// Only include files modified before this date (YYYY-MM-DD)
         #[arg(long)]
         before: Option<String>,
+
+        /// Output results as JSON
+        #[arg(long)]
+        json: bool,
+
+        /// Output results as CSV
+        #[arg(long)]
+        csv: bool,
     },
 
     /// Find visually similar images using perceptual hashing
@@ -200,6 +208,10 @@ pub enum Commands {
         /// Target directory to analyze
         #[arg(default_value = ".")]
         path: PathBuf,
+
+        /// Output results as JSON
+        #[arg(long)]
+        json: bool,
     },
 
     /// Undo the last operation
