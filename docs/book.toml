@@ -1,0 +1,12 @@
+[book]
+title = "NeatCLI Documentation"
+authors = ["Patchy Bean"]
+language = "en"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "coal"
+git-repository-url = "https://github.com/patchybean/neatcli"

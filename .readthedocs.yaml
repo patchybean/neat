@@ -1,0 +1,12 @@
+# Read the Docs configuration file for MkDocs
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+build:
+  os: ubuntu-22.04
+  tools:
+    rust: "1.75"
+  commands:
+    - cargo install mdbook
+    - cd docs && mdbook build --dest-dir $READTHEDOCS_OUTPUT/html
