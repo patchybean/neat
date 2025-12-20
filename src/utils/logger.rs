@@ -58,9 +58,9 @@ impl History {
             Ok(f) => f,
             Err(_) => return Ok(History::default()),
         };
-        
+
         let reader = BufReader::new(file);
-        
+
         // If the file is corrupted, just return empty history
         // This prevents tests and operations from failing due to old/corrupted data
         match serde_json::from_reader(reader) {

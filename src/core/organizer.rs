@@ -185,22 +185,24 @@ pub fn plan_moves_with_template(
 ) -> Vec<PlannedMove> {
     use crate::classifier::Classifier;
     use crate::template::TemplateEngine;
-    
+
     let classifier = Classifier::new();
     let mut moves = Vec::new();
 
     for file in files {
         // Create template engine with file variables
         let engine = TemplateEngine::from_file(file, &classifier);
-        
+
         // Render the destination path from template
         let dest_relative = engine.render(template);
-        
+
         // Build full destination: base_path + rendered template + extension
-        let ext = file.extension.as_ref()
+        let ext = file
+            .extension
+            .as_ref()
             .map(|e| format!(".{}", e))
             .unwrap_or_default();
-        
+
         let destination = base_path.join(&dest_relative).with_extension("");
         let destination = PathBuf::from(format!("{}{}", destination.display(), ext));
 
@@ -427,9 +429,7 @@ fn resolve_conflict_with_strategy(
         }
         ConflictStrategy::Ask => {
             // Pause progress bar and ask user
-            pb.suspend(|| {
-                ask_conflict_resolution(path)
-            })
+            pb.suspend(|| ask_conflict_resolution(path))
         }
         ConflictStrategy::Deduplicate => {
             // For Deduplicate, we'll return the path but handle dedup logic in execute_moves
@@ -450,8 +450,12 @@ fn ask_conflict_resolution(path: &Path) -> Option<PathBuf> {
     use std::io::{self, Write};
 
     let filename = path.file_name().unwrap_or_default().to_string_lossy();
-    
-    println!("\n{} File already exists: {}", "⚠".yellow(), filename.bold());
+
+    println!(
+        "\n{} File already exists: {}",
+        "⚠".yellow(),
+        filename.bold()
+    );
     print!("  [s]kip, [o]verwrite, [r]ename? ");
     io::stdout().flush().ok();
 
@@ -495,38 +499,38 @@ fn resolve_conflict(path: &Path) -> PathBuf {
 /// Backup a file to ~/.neat/versions/
 fn backup_file(path: &Path) -> anyhow::Result<PathBuf> {
     use chrono::Local;
-    
+
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home directory"))?;
     let date = Local::now().format("%Y-%m-%d").to_string();
     let backup_dir = home.join(".neat").join("versions").join(&date);
-    
+
     fs::create_dir_all(&backup_dir)?;
-    
+
     let filename = path.file_name().unwrap_or_default();
     let backup_path = backup_dir.join(filename);
-    
+
     // If backup already exists, add suffix
     let final_backup = if backup_path.exists() {
         resolve_conflict(&backup_path)
     } else {
         backup_path
     };
-    
+
     fs::copy(path, &final_backup)?;
-    
+
     Ok(final_backup)
 }
 
 /// Compute SHA256 hash of a file
 #[allow(dead_code)]
 fn hash_file(path: &Path) -> anyhow::Result<String> {
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
     use std::io::Read;
-    
+
     let mut file = fs::File::open(path)?;
     let mut hasher = Sha256::new();
     let mut buffer = [0u8; 8192];
-    
+
     loop {
         let bytes_read = file.read(&mut buffer)?;
         if bytes_read == 0 {
@@ -534,7 +538,7 @@ fn hash_file(path: &Path) -> anyhow::Result<String> {
         }
         hasher.update(&buffer[..bytes_read]);
     }
-    
+
     Ok(format!("{:x}", hasher.finalize()))
 }
 

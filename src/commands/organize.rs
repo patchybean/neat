@@ -6,8 +6,8 @@ use anyhow::{Context, Result};
 use colored::*;
 
 use crate::organizer::{
-    execute_copies, execute_moves, plan_moves, plan_moves_with_template, preview_moves, print_results, ConflictStrategy,
-    OrganizeMode,
+    execute_copies, execute_moves, plan_moves, plan_moves_with_template, preview_moves,
+    print_results, ConflictStrategy, OrganizeMode,
 };
 use crate::scanner::{
     format_size, parse_date, parse_size, scan_directory, total_size, ScanOptions,
@@ -218,7 +218,8 @@ fn organize_single_path(
             let result = execute_copies(&moves, &format!("copy --by-{}", mode_name), on_conflict)?;
             print_results(&result);
         } else {
-            let result = execute_moves(&moves, &format!("organize --by-{}", mode_name), on_conflict)?;
+            let result =
+                execute_moves(&moves, &format!("organize --by-{}", mode_name), on_conflict)?;
             print_results(&result);
         }
     } else {

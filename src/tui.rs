@@ -226,7 +226,11 @@ impl App {
         use crate::organizer::{execute_moves, ConflictStrategy};
 
         let mode_name = self.organize_mode.name().to_lowercase().replace(" ", "-");
-        execute_moves(&self.planned_moves, &format!("tui organize {}", mode_name), ConflictStrategy::Rename)?;
+        execute_moves(
+            &self.planned_moves,
+            &format!("tui organize {}", mode_name),
+            ConflictStrategy::Rename,
+        )?;
 
         self.status_message = format!("✓ Moved {} files", self.planned_moves.len());
         self.planned_moves.clear();
@@ -269,7 +273,8 @@ impl App {
         use std::fs;
         use trash;
 
-        let selected_files: Vec<FileInfo> = self.selected
+        let selected_files: Vec<FileInfo> = self
+            .selected
             .iter()
             .filter_map(|&i| self.files.get(i).cloned())
             .collect();
@@ -417,7 +422,8 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                     },
                     ViewMode::BatchAction => match key.code {
                         KeyCode::Char('t') => {
-                            if let Err(e) = app.execute_batch_operation(BatchOperation::MoveToTrash) {
+                            if let Err(e) = app.execute_batch_operation(BatchOperation::MoveToTrash)
+                            {
                                 app.status_message = format!("Error: {}", e);
                             }
                         }
@@ -576,7 +582,11 @@ fn render_batch_menu(f: &mut Frame, app: &App, area: Rect) {
 
     let paragraph = Paragraph::new(text)
         .style(Style::default().fg(Color::Cyan))
-        .block(Block::default().borders(Borders::ALL).title(" Batch Actions "));
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Batch Actions "),
+        );
 
     f.render_widget(paragraph, area);
 }

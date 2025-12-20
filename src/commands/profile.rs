@@ -58,14 +58,12 @@ impl Profile {
     pub fn save(&self) -> Result<()> {
         let dir = Self::profiles_dir()?;
         let path = dir.join(format!("{}.toml", self.name));
-        
-        let content = toml::to_string_pretty(self)
-            .context("Failed to serialize profile")?;
-        
-        let mut file = File::create(&path)
-            .context("Failed to create profile file")?;
+
+        let content = toml::to_string_pretty(self).context("Failed to serialize profile")?;
+
+        let mut file = File::create(&path).context("Failed to create profile file")?;
         file.write_all(content.as_bytes())?;
-        
+
         Ok(())
     }
 
@@ -73,17 +71,15 @@ impl Profile {
     pub fn load(name: &str) -> Result<Self> {
         let dir = Self::profiles_dir()?;
         let path = dir.join(format!("{}.toml", name));
-        
+
         if !path.exists() {
             anyhow::bail!("Profile '{}' not found", name);
         }
-        
-        let content = fs::read_to_string(&path)
-            .context("Failed to read profile file")?;
-        
-        let profile: Profile = toml::from_str(&content)
-            .context("Failed to parse profile")?;
-        
+
+        let content = fs::read_to_string(&path).context("Failed to read profile file")?;
+
+        let profile: Profile = toml::from_str(&content).context("Failed to parse profile")?;
+
         Ok(profile)
     }
 
@@ -91,7 +87,7 @@ impl Profile {
     pub fn list_all() -> Result<Vec<String>> {
         let dir = Self::profiles_dir()?;
         let mut profiles = Vec::new();
-        
+
         for entry in fs::read_dir(&dir)? {
             let entry = entry?;
             let path = entry.path();
@@ -101,7 +97,7 @@ impl Profile {
                 }
             }
         }
-        
+
         profiles.sort();
         Ok(profiles)
     }
@@ -110,11 +106,11 @@ impl Profile {
     pub fn delete(name: &str) -> Result<()> {
         let dir = Self::profiles_dir()?;
         let path = dir.join(format!("{}.toml", name));
-        
+
         if !path.exists() {
             anyhow::bail!("Profile '{}' not found", name);
         }
-        
+
         fs::remove_file(&path)?;
         Ok(())
     }
@@ -176,26 +172,34 @@ pub fn run(action: ProfileAction) -> Result<()> {
                     ignore,
                 },
             };
-            
+
             profile.save()?;
             println!("{} Saved profile '{}'", "✓".green(), name.bold());
-            
+
             Ok(())
         }
-        
+
         ProfileAction::List => {
             let profiles = Profile::list_all()?;
-            
+
             if profiles.is_empty() {
                 println!("{}", "No profiles saved yet.".yellow());
-                println!("  Use {} to create one.", "neatcli profile save <name> ...".cyan());
+                println!(
+                    "  Use {} to create one.",
+                    "neatcli profile save <name> ...".cyan()
+                );
             } else {
                 println!("{}", "Saved profiles:".bold());
                 for name in profiles {
                     if let Ok(profile) = Profile::load(&name) {
                         let desc = profile.description.unwrap_or_default();
                         let mode = get_mode_name(&profile.options);
-                        println!("  {} {} {}", "●".green(), name.bold(), format!("({})", mode).dimmed());
+                        println!(
+                            "  {} {} {}",
+                            "●".green(),
+                            name.bold(),
+                            format!("({})", mode).dimmed()
+                        );
                         if !desc.is_empty() {
                             println!("    {}", desc.dimmed());
                         }
@@ -204,33 +208,29 @@ pub fn run(action: ProfileAction) -> Result<()> {
                     }
                 }
             }
-            
+
             Ok(())
         }
-        
+
         ProfileAction::Run { name, dry_run } => {
             let profile = Profile::load(&name)?;
-            
-            println!(
-                "{} Running profile '{}'...",
-                "→".cyan(),
-                name.bold()
-            );
-            
+
+            println!("{} Running profile '{}'...", "→".cyan(), name.bold());
+
             run_profile(&profile, !dry_run)?;
-            
+
             Ok(())
         }
-        
+
         ProfileAction::Delete { name } => {
             Profile::delete(&name)?;
             println!("{} Deleted profile '{}'", "✓".green(), name.bold());
             Ok(())
         }
-        
+
         ProfileAction::Show { name } => {
             let profile = Profile::load(&name)?;
-            
+
             println!("{} {}", "Profile:".bold(), profile.name.cyan());
             if let Some(desc) = &profile.description {
                 println!("  Description: {}", desc);
@@ -238,42 +238,58 @@ pub fn run(action: ProfileAction) -> Result<()> {
             println!("  Command: {}", profile.command);
             println!("  Paths: {:?}", profile.paths);
             println!("  Mode: {}", get_mode_name(&profile.options));
-            
+
             if profile.options.recursive {
                 println!("  Recursive: yes");
             }
             if profile.options.copy {
                 println!("  Copy mode: yes");
             }
-            
+
             Ok(())
         }
     }
 }
 
 fn get_mode_name(options: &ProfileOptions) -> &str {
-    if options.by_date { "by-date" }
-    else if options.by_extension { "by-extension" }
-    else if options.by_camera { "by-camera" }
-    else if options.by_date_taken { "by-date-taken" }
-    else if options.by_artist { "by-artist" }
-    else if options.by_album { "by-album" }
-    else { "by-type" }
+    if options.by_date {
+        "by-date"
+    } else if options.by_extension {
+        "by-extension"
+    } else if options.by_camera {
+        "by-camera"
+    } else if options.by_date_taken {
+        "by-date-taken"
+    } else if options.by_artist {
+        "by-artist"
+    } else if options.by_album {
+        "by-album"
+    } else {
+        "by-type"
+    }
 }
 
 fn run_profile(profile: &Profile, execute: bool) -> Result<()> {
     use crate::organizer::{
         execute_moves, plan_moves, preview_moves, print_results, ConflictStrategy, OrganizeMode,
     };
-    use crate::scanner::{scan_directory, ScanOptions, parse_size, parse_date};
+    use crate::scanner::{parse_date, parse_size, scan_directory, ScanOptions};
 
-    let mode = if profile.options.by_date { OrganizeMode::ByDate }
-        else if profile.options.by_extension { OrganizeMode::ByExtension }
-        else if profile.options.by_camera { OrganizeMode::ByCamera }
-        else if profile.options.by_date_taken { OrganizeMode::ByDateTaken }
-        else if profile.options.by_artist { OrganizeMode::ByArtist }
-        else if profile.options.by_album { OrganizeMode::ByAlbum }
-        else { OrganizeMode::ByType };
+    let mode = if profile.options.by_date {
+        OrganizeMode::ByDate
+    } else if profile.options.by_extension {
+        OrganizeMode::ByExtension
+    } else if profile.options.by_camera {
+        OrganizeMode::ByCamera
+    } else if profile.options.by_date_taken {
+        OrganizeMode::ByDateTaken
+    } else if profile.options.by_artist {
+        OrganizeMode::ByArtist
+    } else if profile.options.by_album {
+        OrganizeMode::ByAlbum
+    } else {
+        OrganizeMode::ByType
+    };
 
     let conflict_strategy = match profile.options.on_conflict.as_str() {
         "skip" => ConflictStrategy::Skip,
@@ -282,35 +298,52 @@ fn run_profile(profile: &Profile, execute: bool) -> Result<()> {
         _ => ConflictStrategy::Rename,
     };
 
-    let min_size = profile.options.min_size.as_ref()
-        .map(|s| parse_size(s))
-        .transpose()
-        .map_err(|e| anyhow::anyhow!(e))?;
-        
-    let max_size = profile.options.max_size.as_ref()
+    let min_size = profile
+        .options
+        .min_size
+        .as_ref()
         .map(|s| parse_size(s))
         .transpose()
         .map_err(|e| anyhow::anyhow!(e))?;
 
-    let after_date = profile.options.after.as_ref()
+    let max_size = profile
+        .options
+        .max_size
+        .as_ref()
+        .map(|s| parse_size(s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!(e))?;
+
+    let after_date = profile
+        .options
+        .after
+        .as_ref()
         .map(|s| parse_date(s))
         .transpose()
         .map_err(|e| anyhow::anyhow!(e))?;
-        
-    let before_date = profile.options.before.as_ref()
+
+    let before_date = profile
+        .options
+        .before
+        .as_ref()
         .map(|s| parse_date(s))
         .transpose()
         .map_err(|e| anyhow::anyhow!(e))?;
 
     for path in &profile.paths {
-        let canonical = path.canonicalize()
+        let canonical = path
+            .canonicalize()
             .with_context(|| format!("Path does not exist: {:?}", path))?;
 
         println!("  {} {}", "Scanning".dimmed(), canonical.display());
 
         let options = ScanOptions {
             include_hidden: false,
-            max_depth: if profile.options.recursive { None } else { Some(1) },
+            max_depth: if profile.options.recursive {
+                None
+            } else {
+                Some(1)
+            },
             follow_symlinks: false,
             ignore_patterns: profile.options.ignore.clone(),
             min_size,

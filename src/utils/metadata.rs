@@ -327,10 +327,7 @@ mod tests {
             artist: Some("Taylor Swift".to_string()),
             ..Default::default()
         };
-        assert_eq!(
-            meta.artist_folder_name(),
-            Some("Taylor Swift".to_string())
-        );
+        assert_eq!(meta.artist_folder_name(), Some("Taylor Swift".to_string()));
     }
 
     #[test]
