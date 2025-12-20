@@ -161,6 +161,10 @@ fn main() -> Result<()> {
             tui::run_tui(&path)?;
         }
 
+        Commands::Quick { action } => {
+            commands::quick::run(action)?;
+        }
+
         Commands::Completions { shell } => {
             use clap::CommandFactory;
             use clap_complete::generate;

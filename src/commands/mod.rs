@@ -5,6 +5,7 @@ pub mod config;
 pub mod duplicates;
 pub mod history;
 pub mod organize;
+pub mod quick;
 pub mod similar;
 pub mod stats;
 pub mod undo;

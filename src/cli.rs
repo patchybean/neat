@@ -308,6 +308,12 @@ pub enum Commands {
         path: PathBuf,
     },
 
+    /// Quick actions for common workflows
+    Quick {
+        #[command(subcommand)]
+        action: QuickAction,
+    },
+
     /// Generate shell completions
     Completions {
         /// Shell to generate completions for
@@ -330,5 +336,60 @@ pub enum ConfigAction {
         /// Path to config file
         #[arg(short, long)]
         path: Option<PathBuf>,
+    },
+}
+
+/// Quick action presets for common workflows
+#[derive(Subcommand)]
+pub enum QuickAction {
+    /// Organize ~/Downloads by file type
+    Downloads {
+        /// Preview changes without executing
+        #[arg(long, short = 'n')]
+        dry_run: bool,
+    },
+
+    /// Clean up ~/Desktop by file type
+    Desktop {
+        /// Preview changes without executing
+        #[arg(long, short = 'n')]
+        dry_run: bool,
+    },
+
+    /// Organize photos by date taken (EXIF)
+    Photos {
+        /// Target directory (default: ~/Pictures)
+        #[arg(default_value = "~/Pictures")]
+        path: PathBuf,
+
+        /// Preview changes without executing
+        #[arg(long, short = 'n')]
+        dry_run: bool,
+    },
+
+    /// Organize music by artist/album
+    Music {
+        /// Target directory (default: ~/Music)
+        #[arg(default_value = "~/Music")]
+        path: PathBuf,
+
+        /// Preview changes without executing
+        #[arg(long, short = 'n')]
+        dry_run: bool,
+    },
+
+    /// Remove old files from ~/Downloads (older than 30 days)
+    Cleanup {
+        /// Days threshold (default: 30)
+        #[arg(long, short, default_value = "30")]
+        days: u32,
+
+        /// Move to trash instead of preview
+        #[arg(long)]
+        trash: bool,
+
+        /// Preview changes without executing
+        #[arg(long, short = 'n')]
+        dry_run: bool,
     },
 }
