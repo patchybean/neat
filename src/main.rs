@@ -165,6 +165,10 @@ fn main() -> Result<()> {
             commands::quick::run(action)?;
         }
 
+        Commands::Profile { action } => {
+            commands::profile::run(action)?;
+        }
+
         Commands::Completions { shell } => {
             use clap::CommandFactory;
             use clap_complete::generate;

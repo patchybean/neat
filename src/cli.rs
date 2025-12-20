@@ -314,6 +314,12 @@ pub enum Commands {
         action: QuickAction,
     },
 
+    /// Manage saved profiles for organize commands
+    Profile {
+        #[command(subcommand)]
+        action: ProfileAction,
+    },
+
     /// Generate shell completions
     Completions {
         /// Shell to generate completions for
@@ -391,5 +397,128 @@ pub enum QuickAction {
         /// Preview changes without executing
         #[arg(long, short = 'n')]
         dry_run: bool,
+    },
+}
+
+/// Profile management actions
+#[derive(Subcommand)]
+pub enum ProfileAction {
+    /// Save current options as a named profile
+    Save {
+        /// Profile name
+        name: String,
+
+        /// Profile description
+        #[arg(long, short)]
+        description: Option<String>,
+
+        /// Target directories
+        #[arg(long, short, num_args = 1..)]
+        paths: Vec<PathBuf>,
+
+        /// Organize by type
+        #[arg(long)]
+        by_type: bool,
+
+        /// Organize by date
+        #[arg(long)]
+        by_date: bool,
+
+        /// Organize by extension
+        #[arg(long)]
+        by_extension: bool,
+
+        /// Organize by camera
+        #[arg(long)]
+        by_camera: bool,
+
+        /// Organize by date taken
+        #[arg(long)]
+        by_date_taken: bool,
+
+        /// Organize by artist
+        #[arg(long)]
+        by_artist: bool,
+
+        /// Organize by album
+        #[arg(long)]
+        by_album: bool,
+
+        /// Include subdirectories
+        #[arg(long, short)]
+        recursive: bool,
+
+        /// Copy instead of move
+        #[arg(long, short)]
+        copy: bool,
+
+        /// Conflict strategy
+        #[arg(long)]
+        on_conflict: Option<String>,
+
+        /// Minimum file size
+        #[arg(long)]
+        min_size: Option<String>,
+
+        /// Maximum file size
+        #[arg(long)]
+        max_size: Option<String>,
+
+        /// Files after date
+        #[arg(long)]
+        after: Option<String>,
+
+        /// Files before date
+        #[arg(long)]
+        before: Option<String>,
+
+        /// Filename starts with
+        #[arg(long)]
+        startswith: Option<String>,
+
+        /// Filename ends with
+        #[arg(long)]
+        endswith: Option<String>,
+
+        /// Filename contains
+        #[arg(long)]
+        contains: Option<String>,
+
+        /// Regex pattern
+        #[arg(long)]
+        regex: Option<String>,
+
+        /// MIME type filter
+        #[arg(long)]
+        mime: Option<String>,
+
+        /// Ignore patterns
+        #[arg(long)]
+        ignore: Vec<String>,
+    },
+
+    /// List all saved profiles
+    List,
+
+    /// Run a saved profile
+    Run {
+        /// Profile name
+        name: String,
+
+        /// Preview changes without executing
+        #[arg(long, short = 'n')]
+        dry_run: bool,
+    },
+
+    /// Delete a profile
+    Delete {
+        /// Profile name
+        name: String,
+    },
+
+    /// Show profile details
+    Show {
+        /// Profile name
+        name: String,
     },
 }
