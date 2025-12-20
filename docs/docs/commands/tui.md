@@ -25,23 +25,37 @@ The TUI provides a visual interface for:
 | `↓` / `j` | Move down |
 | `Space` | Select/deselect file |
 | `a` | Select all |
-| `A` | Deselect all |
-| `1-7` | Choose organize mode |
-| `Enter` | Preview moves |
-| `e` | Execute moves |
+| `d` | Deselect all |
+| `m` | Change organize mode |
+| `b` | Open batch action menu |
+| `Enter` / `p` | Preview moves |
+| `?` | Show help |
 | `q` | Quit |
+
+## Batch Operations
+
+Press `b` with selected files to open the batch action menu:
+
+| Key | Action |
+|-----|--------|
+| `t` | Move to trash |
+| `d` | Delete permanently |
+| `o` | Organize with current mode |
+| `Esc` | Cancel |
 
 ## Organization Modes
 
-| Key | Mode |
-|-----|------|
-| `1` | By Type |
-| `2` | By Date |
-| `3` | By Extension |
-| `4` | By Camera (EXIF) |
-| `5` | By Date Taken (EXIF) |
-| `6` | By Artist (Audio) |
-| `7` | By Album (Audio) |
+Press `m` to cycle through modes:
+
+| Mode | Description |
+|------|-------------|
+| By Type | Images/, Documents/, Videos/, etc. |
+| By Date | YYYY/MM/ structure |
+| By Extension | PDF/, JPG/, MP4/, etc. |
+| By Camera | Camera model from EXIF |
+| By Date Taken | Date from EXIF metadata |
+| By Artist | Artist from audio tags |
+| By Album | Artist/Album/ structure |
 
 ## Examples
 

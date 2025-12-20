@@ -58,6 +58,8 @@ nav:
     - similar: commands/similar.md
     - stats: commands/stats.md
     - watch: commands/watch.md
+    - quick: commands/quick.md
+    - profile: commands/profile.md
     - undo: commands/undo.md
     - history: commands/history.md
     - config: commands/config.md
