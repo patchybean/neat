@@ -40,6 +40,15 @@ Choose how files should be organized:
 | `--copy` | `-c` | Copy files instead of moving |
 | `--recursive` | `-r` | Include subdirectories |
 
+### Conflict Resolution
+
+| Flag | Value | Description |
+|------|-------|-------------|
+| `--on-conflict` | `skip` | Skip files that already exist at destination |
+| `--on-conflict` | `overwrite` | Overwrite existing files |
+| `--on-conflict` | `rename` | Rename with suffix `_1`, `_2`, etc. (default) |
+| `--on-conflict` | `ask` | Ask interactively for each conflict |
+
 ### Filter Options
 
 | Flag | Description | Example |

@@ -207,10 +207,10 @@ impl App {
 
     /// Execute moves
     pub fn execute_moves(&mut self) -> Result<()> {
-        use crate::organizer::execute_moves;
+        use crate::organizer::{execute_moves, ConflictStrategy};
 
         let mode_name = self.organize_mode.name().to_lowercase().replace(" ", "-");
-        execute_moves(&self.planned_moves, &format!("tui organize {}", mode_name))?;
+        execute_moves(&self.planned_moves, &format!("tui organize {}", mode_name), ConflictStrategy::Rename)?;
 
         self.status_message = format!("✓ Moved {} files", self.planned_moves.len());
         self.planned_moves.clear();

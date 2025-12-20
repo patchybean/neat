@@ -3,6 +3,22 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+use crate::organizer::ConflictStrategy;
+
+/// Parse conflict strategy from string
+fn parse_conflict_strategy(s: &str) -> Result<ConflictStrategy, String> {
+    match s.to_lowercase().as_str() {
+        "skip" => Ok(ConflictStrategy::Skip),
+        "overwrite" => Ok(ConflictStrategy::Overwrite),
+        "rename" => Ok(ConflictStrategy::Rename),
+        "ask" => Ok(ConflictStrategy::Ask),
+        _ => Err(format!(
+            "Invalid conflict strategy '{}'. Use: skip, overwrite, rename, or ask",
+            s
+        )),
+    }
+}
+
 /// Neat - A smart CLI tool to organize and clean up messy directories
 #[derive(Parser)]
 #[command(name = "neatcli")]
@@ -112,6 +128,10 @@ pub enum Commands {
         /// Filter by MIME type (e.g., "image/*", "application/pdf")
         #[arg(long)]
         mime: Option<String>,
+
+        /// How to handle file conflicts (skip, overwrite, rename, ask)
+        #[arg(long, value_parser = parse_conflict_strategy, default_value = "rename")]
+        on_conflict: ConflictStrategy,
     },
 
     /// Clean old files from a directory

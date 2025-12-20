@@ -11,7 +11,7 @@ use notify_debouncer_mini::{new_debouncer, DebouncedEventKind};
 
 use crate::classifier::Classifier;
 use crate::config::Config as NeatConfig;
-use crate::organizer::{execute_moves, plan_moves, OrganizeMode, PlannedMove};
+use crate::organizer::{execute_moves, plan_moves, ConflictStrategy, OrganizeMode, PlannedMove};
 use crate::scanner::FileInfo;
 
 /// Watch a directory and auto-organize new files
@@ -122,7 +122,7 @@ pub fn watch_directory(
                                 .unwrap_or_default();
 
                             if auto_execute {
-                                match execute_moves(&moves, "watch") {
+                                match execute_moves(&moves, "watch", ConflictStrategy::Rename) {
                                     Ok(_) => {
                                         println!(
                                             "  {} Moved to {}",

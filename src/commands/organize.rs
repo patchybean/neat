@@ -6,7 +6,8 @@ use anyhow::{Context, Result};
 use colored::*;
 
 use crate::organizer::{
-    execute_copies, execute_moves, plan_moves, preview_moves, print_results, OrganizeMode,
+    execute_copies, execute_moves, plan_moves, preview_moves, print_results, ConflictStrategy,
+    OrganizeMode,
 };
 use crate::scanner::{
     format_size, parse_date, parse_size, scan_directory, total_size, ScanOptions,
@@ -38,6 +39,7 @@ pub fn run(
     contains: Option<String>,
     regex: Option<String>,
     mime: Option<String>,
+    on_conflict: ConflictStrategy,
 ) -> Result<()> {
     // Determine mode
     let mode = if by_date {
@@ -107,6 +109,7 @@ pub fn run(
             contains.clone(),
             regex.clone(),
             mime.clone(),
+            on_conflict,
         )?;
     }
 
@@ -134,6 +137,7 @@ fn organize_single_path(
     contains: Option<String>,
     regex: Option<String>,
     mime: Option<String>,
+    on_conflict: ConflictStrategy,
 ) -> Result<()> {
     let canonical_path = path
         .canonicalize()
@@ -198,10 +202,10 @@ fn organize_single_path(
     // Dry-run is default if --execute is not specified
     if execute && !dry_run {
         if copy {
-            let result = execute_copies(&moves, &format!("copy --by-{}", mode_name))?;
+            let result = execute_copies(&moves, &format!("copy --by-{}", mode_name), on_conflict)?;
             print_results(&result);
         } else {
-            let result = execute_moves(&moves, &format!("organize --by-{}", mode_name))?;
+            let result = execute_moves(&moves, &format!("organize --by-{}", mode_name), on_conflict)?;
             print_results(&result);
         }
     } else {

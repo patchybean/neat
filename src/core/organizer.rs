@@ -27,6 +27,20 @@ pub enum OrganizeMode {
     ByAlbum,
 }
 
+/// Strategy for handling file conflicts
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub enum ConflictStrategy {
+    /// Skip files that already exist at destination
+    Skip,
+    /// Overwrite existing files
+    Overwrite,
+    /// Rename new file with suffix (_1, _2, etc.)
+    #[default]
+    Rename,
+    /// Ask user interactively for each conflict
+    Ask,
+}
+
 /// A planned file move
 #[derive(Debug, Clone)]
 pub struct PlannedMove {
@@ -213,7 +227,11 @@ pub fn preview_moves(moves: &[PlannedMove], base_path: &Path) {
 }
 
 /// Execute planned moves
-pub fn execute_moves(moves: &[PlannedMove], command_name: &str) -> Result<OrganizeResult> {
+pub fn execute_moves(
+    moves: &[PlannedMove],
+    command_name: &str,
+    strategy: ConflictStrategy,
+) -> Result<OrganizeResult> {
     if moves.is_empty() {
         return Ok(OrganizeResult::default());
     }
@@ -242,8 +260,15 @@ pub fn execute_moves(moves: &[PlannedMove], command_name: &str) -> Result<Organi
             }
         }
 
-        // Handle name conflicts
-        let final_dest = resolve_conflict(&mv.to);
+        // Handle name conflicts based on strategy
+        let final_dest = match resolve_conflict_with_strategy(&mv.to, strategy, &pb) {
+            Some(dest) => dest,
+            None => {
+                // Skip was chosen
+                result.skipped += 1;
+                continue;
+            }
+        };
 
         // Move the file
         match fs::rename(&mv.from, &final_dest) {
@@ -266,7 +291,11 @@ pub fn execute_moves(moves: &[PlannedMove], command_name: &str) -> Result<Organi
 }
 
 /// Execute planned copies (copy instead of move)
-pub fn execute_copies(moves: &[PlannedMove], command_name: &str) -> Result<OrganizeResult> {
+pub fn execute_copies(
+    moves: &[PlannedMove],
+    command_name: &str,
+    strategy: ConflictStrategy,
+) -> Result<OrganizeResult> {
     if moves.is_empty() {
         return Ok(OrganizeResult::default());
     }
@@ -295,8 +324,15 @@ pub fn execute_copies(moves: &[PlannedMove], command_name: &str) -> Result<Organ
             }
         }
 
-        // Handle name conflicts
-        let final_dest = resolve_conflict(&mv.to);
+        // Handle name conflicts based on strategy
+        let final_dest = match resolve_conflict_with_strategy(&mv.to, strategy, &pb) {
+            Some(dest) => dest,
+            None => {
+                // Skip was chosen
+                result.skipped += 1;
+                continue;
+            }
+        };
 
         // Copy the file instead of moving
         match fs::copy(&mv.from, &final_dest) {
@@ -316,6 +352,62 @@ pub fn execute_copies(moves: &[PlannedMove], command_name: &str) -> Result<Organ
     logger.save()?;
 
     Ok(result)
+}
+
+/// Resolve filename conflicts with a specific strategy
+/// Returns None if the file should be skipped
+fn resolve_conflict_with_strategy(
+    path: &Path,
+    strategy: ConflictStrategy,
+    pb: &ProgressBar,
+) -> Option<PathBuf> {
+    if !path.exists() {
+        return Some(path.to_path_buf());
+    }
+
+    match strategy {
+        ConflictStrategy::Skip => {
+            // Don't move/copy, skip this file
+            None
+        }
+        ConflictStrategy::Overwrite => {
+            // Return the same path, fs::rename/fs::copy will overwrite
+            Some(path.to_path_buf())
+        }
+        ConflictStrategy::Rename => {
+            // Add suffix like _1, _2, etc.
+            Some(resolve_conflict(path))
+        }
+        ConflictStrategy::Ask => {
+            // Pause progress bar and ask user
+            pb.suspend(|| {
+                ask_conflict_resolution(path)
+            })
+        }
+    }
+}
+
+/// Interactive conflict resolution
+fn ask_conflict_resolution(path: &Path) -> Option<PathBuf> {
+    use std::io::{self, Write};
+
+    let filename = path.file_name().unwrap_or_default().to_string_lossy();
+    
+    println!("\n{} File already exists: {}", "⚠".yellow(), filename.bold());
+    print!("  [s]kip, [o]verwrite, [r]ename? ");
+    io::stdout().flush().ok();
+
+    let mut input = String::new();
+    if io::stdin().read_line(&mut input).is_err() {
+        return None; // Skip on error
+    }
+
+    match input.trim().to_lowercase().chars().next() {
+        Some('s') => None,
+        Some('o') => Some(path.to_path_buf()),
+        Some('r') => Some(resolve_conflict(path)),
+        _ => None, // Default to skip
+    }
 }
 
 /// Resolve filename conflicts by adding a number suffix
