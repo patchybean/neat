@@ -59,7 +59,9 @@ nav:
     - stats: commands/stats.md
     - watch: commands/watch.md
     - undo: commands/undo.md
+    - history: commands/history.md
     - config: commands/config.md
+    - completions: commands/completions.md
     - tui: commands/tui.md
   - Reference:
     - Filters: reference/filters.md
