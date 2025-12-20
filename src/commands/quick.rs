@@ -12,14 +12,14 @@ use crate::organizer::{
 use crate::scanner::{scan_directory, ScanOptions};
 
 /// Expand ~ to home directory
-fn expand_home(path: &PathBuf) -> PathBuf {
+fn expand_home(path: &std::path::Path) -> PathBuf {
     let path_str = path.to_string_lossy();
-    if path_str.starts_with("~/") {
+    if let Some(stripped) = path_str.strip_prefix("~/") {
         if let Some(home) = dirs::home_dir() {
-            return home.join(&path_str[2..]);
+            return home.join(stripped);
         }
     }
-    path.clone()
+    path.to_path_buf()
 }
 
 /// Run a quick action
@@ -60,7 +60,7 @@ pub fn run(action: QuickAction) -> Result<()> {
 }
 
 /// Organize files by type
-fn organize_by_type(path: &PathBuf, execute: bool, name: &str) -> Result<()> {
+fn organize_by_type(path: &std::path::Path, execute: bool, name: &str) -> Result<()> {
     println!(
         "{} Quick action: Organize {} by type",
         "→".cyan(),
@@ -106,7 +106,7 @@ fn organize_by_type(path: &PathBuf, execute: bool, name: &str) -> Result<()> {
 }
 
 /// Organize photos by date taken
-fn organize_photos(path: &PathBuf, execute: bool) -> Result<()> {
+fn organize_photos(path: &std::path::Path, execute: bool) -> Result<()> {
     println!(
         "{} Quick action: Organize photos by date taken",
         "→".cyan()
@@ -145,7 +145,7 @@ fn organize_photos(path: &PathBuf, execute: bool) -> Result<()> {
 }
 
 /// Organize music by album
-fn organize_music(path: &PathBuf, execute: bool) -> Result<()> {
+fn organize_music(path: &std::path::Path, execute: bool) -> Result<()> {
     println!(
         "{} Quick action: Organize music by artist/album",
         "→".cyan()
@@ -184,7 +184,7 @@ fn organize_music(path: &PathBuf, execute: bool) -> Result<()> {
 }
 
 /// Clean up old files
-fn cleanup_old_files(path: &PathBuf, days: u32, use_trash: bool, execute: bool) -> Result<()> {
+fn cleanup_old_files(path: &std::path::Path, days: u32, use_trash: bool, execute: bool) -> Result<()> {
     use std::time::{Duration, SystemTime};
     
     println!(

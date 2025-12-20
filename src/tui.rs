@@ -35,7 +35,9 @@ pub enum ViewMode {
 pub enum BatchOperation {
     MoveToTrash,
     Delete,
+    #[allow(dead_code)]
     CopyTo,
+    #[allow(dead_code)]
     MoveTo,
 }
 
@@ -114,6 +116,7 @@ pub struct App {
     /// Status message
     pub status_message: String,
     /// Current batch operation selection
+    #[allow(dead_code)]
     pub batch_operation: Option<BatchOperation>,
 }
 

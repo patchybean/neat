@@ -408,6 +408,7 @@ pub enum QuickAction {
 
 /// Profile management actions
 #[derive(Subcommand)]
+#[allow(clippy::large_enum_variant)]
 pub enum ProfileAction {
     /// Save current options as a named profile
     Save {

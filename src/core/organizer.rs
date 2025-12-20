@@ -518,6 +518,7 @@ fn backup_file(path: &Path) -> anyhow::Result<PathBuf> {
 }
 
 /// Compute SHA256 hash of a file
+#[allow(dead_code)]
 fn hash_file(path: &Path) -> anyhow::Result<String> {
     use sha2::{Sha256, Digest};
     use std::io::Read;
