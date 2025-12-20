@@ -5,12 +5,12 @@ Organize files by type, date, extension, or metadata.
 ## Usage
 
 ```bash
-neatcli organize [OPTIONS] [PATH]
+neatcli organize [OPTIONS] [PATHS]...
 ```
 
 **Arguments:**
 
-- `PATH` - Directory to organize (default: current directory)
+- `PATHS` - One or more directories to organize (default: current directory)
 
 ## Organization Modes
 
@@ -115,6 +115,16 @@ neatcli organize ~/Photos --copy --execute
 ```bash
 # Include all subdirectories
 neatcli organize ~/Downloads --recursive --execute
+```
+
+### Multiple Locations
+
+```bash
+# Organize multiple directories at once
+neatcli organize ~/Downloads ~/Desktop --by-type --execute
+
+# Different paths with same options
+neatcli organize /path/to/photos /path/to/backups --by-date-taken --execute
 ```
 
 ## Output
