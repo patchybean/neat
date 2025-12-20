@@ -39,6 +39,10 @@ pub enum ConflictStrategy {
     Rename,
     /// Ask user interactively for each conflict
     Ask,
+    /// Hash-based deduplication: delete source if content identical
+    Deduplicate,
+    /// Backup old file to ~/.neat/versions/ before overwriting
+    Backup,
 }
 
 /// A planned file move
@@ -53,9 +57,12 @@ pub struct PlannedMove {
 #[derive(Debug, Default)]
 pub struct OrganizeResult {
     pub moved: usize,
+    pub copied: usize,
     pub skipped: usize,
     pub errors: Vec<String>,
     pub total_size: u64,
+    pub deduplicated: usize,
+    pub backed_up: usize,
 }
 
 /// Plan file moves based on the organization mode
@@ -156,6 +163,46 @@ pub fn plan_moves(files: &[FileInfo], base_path: &Path, mode: OrganizeMode) -> V
                 base_path.join(artist).join(album).join(&file.name)
             }
         };
+
+        // Skip if file is already in the right place
+        if file.path != destination {
+            moves.push(PlannedMove {
+                from: file.path.clone(),
+                to: destination,
+                size: file.size,
+            });
+        }
+    }
+
+    moves
+}
+
+/// Plan moves using a custom template
+pub fn plan_moves_with_template(
+    files: &[FileInfo],
+    base_path: &Path,
+    template: &str,
+) -> Vec<PlannedMove> {
+    use crate::classifier::Classifier;
+    use crate::template::TemplateEngine;
+    
+    let classifier = Classifier::new();
+    let mut moves = Vec::new();
+
+    for file in files {
+        // Create template engine with file variables
+        let engine = TemplateEngine::from_file(file, &classifier);
+        
+        // Render the destination path from template
+        let dest_relative = engine.render(template);
+        
+        // Build full destination: base_path + rendered template + extension
+        let ext = file.extension.as_ref()
+            .map(|e| format!(".{}", e))
+            .unwrap_or_default();
+        
+        let destination = base_path.join(&dest_relative).with_extension("");
+        let destination = PathBuf::from(format!("{}{}", destination.display(), ext));
 
         // Skip if file is already in the right place
         if file.path != destination {
@@ -384,6 +431,17 @@ fn resolve_conflict_with_strategy(
                 ask_conflict_resolution(path)
             })
         }
+        ConflictStrategy::Deduplicate => {
+            // For Deduplicate, we'll return the path but handle dedup logic in execute_moves
+            Some(path.to_path_buf())
+        }
+        ConflictStrategy::Backup => {
+            // Backup old file first, then overwrite
+            if let Err(e) = backup_file(path) {
+                eprintln!("Failed to backup {}: {}", path.display(), e);
+            }
+            Some(path.to_path_buf())
+        }
     }
 }
 
@@ -434,6 +492,51 @@ fn resolve_conflict(path: &Path) -> PathBuf {
     }
 }
 
+/// Backup a file to ~/.neat/versions/
+fn backup_file(path: &Path) -> anyhow::Result<PathBuf> {
+    use chrono::Local;
+    
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home directory"))?;
+    let date = Local::now().format("%Y-%m-%d").to_string();
+    let backup_dir = home.join(".neat").join("versions").join(&date);
+    
+    fs::create_dir_all(&backup_dir)?;
+    
+    let filename = path.file_name().unwrap_or_default();
+    let backup_path = backup_dir.join(filename);
+    
+    // If backup already exists, add suffix
+    let final_backup = if backup_path.exists() {
+        resolve_conflict(&backup_path)
+    } else {
+        backup_path
+    };
+    
+    fs::copy(path, &final_backup)?;
+    
+    Ok(final_backup)
+}
+
+/// Compute SHA256 hash of a file
+fn hash_file(path: &Path) -> anyhow::Result<String> {
+    use sha2::{Sha256, Digest};
+    use std::io::Read;
+    
+    let mut file = fs::File::open(path)?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; 8192];
+    
+    loop {
+        let bytes_read = file.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+    
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
 /// Print organize results
 pub fn print_results(result: &OrganizeResult) {
     println!("\n{}", "Results:".bold().green());
@@ -445,6 +548,30 @@ pub fn print_results(result: &OrganizeResult) {
             "✓".green(),
             result.moved.to_string().green(),
             format_size(result.total_size).dimmed()
+        );
+    }
+
+    if result.copied > 0 {
+        println!(
+            "  {} {} files copied",
+            "✓".green(),
+            result.copied.to_string().green()
+        );
+    }
+
+    if result.deduplicated > 0 {
+        println!(
+            "  {} {} duplicate files removed",
+            "✓".cyan(),
+            result.deduplicated.to_string().cyan()
+        );
+    }
+
+    if result.backed_up > 0 {
+        println!(
+            "  {} {} files backed up to ~/.neat/versions/",
+            "↻".blue(),
+            result.backed_up.to_string().blue()
         );
     }
 

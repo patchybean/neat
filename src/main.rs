@@ -44,6 +44,7 @@ fn main() -> Result<()> {
             contains,
             regex,
             mime,
+            template,
             on_conflict,
         } => {
             commands::organize::run(
@@ -70,6 +71,7 @@ fn main() -> Result<()> {
                 contains,
                 regex,
                 mime,
+                template,
                 on_conflict,
             )?;
         }

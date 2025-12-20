@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use colored::*;
 
 use crate::organizer::{
-    execute_copies, execute_moves, plan_moves, preview_moves, print_results, ConflictStrategy,
+    execute_copies, execute_moves, plan_moves, plan_moves_with_template, preview_moves, print_results, ConflictStrategy,
     OrganizeMode,
 };
 use crate::scanner::{
@@ -39,6 +39,7 @@ pub fn run(
     contains: Option<String>,
     regex: Option<String>,
     mime: Option<String>,
+    template: Option<String>,
     on_conflict: ConflictStrategy,
 ) -> Result<()> {
     // Determine mode
@@ -109,6 +110,7 @@ pub fn run(
             contains.clone(),
             regex.clone(),
             mime.clone(),
+            template.clone(),
             on_conflict,
         )?;
     }
@@ -137,6 +139,7 @@ fn organize_single_path(
     contains: Option<String>,
     regex: Option<String>,
     mime: Option<String>,
+    template: Option<String>,
     on_conflict: ConflictStrategy,
 ) -> Result<()> {
     let canonical_path = path
@@ -146,12 +149,18 @@ fn organize_single_path(
     let action = if copy { "copying" } else { "organizing" };
     let recursive_msg = if recursive { " (recursive)" } else { "" };
 
+    let template_display = if let Some(ref t) = template {
+        format!(" with template '{}'", t)
+    } else {
+        format!(" by {}", mode_name.cyan())
+    };
+
     println!(
-        "{} Scanning {} ({} by {}{})...",
+        "{} Scanning {} ({}{}{})...",
         "→".cyan(),
         canonical_path.display().to_string().bold(),
         action,
-        mode_name.cyan(),
+        template_display,
         recursive_msg
     );
 
@@ -191,8 +200,12 @@ fn organize_single_path(
         );
     }
 
-    // Plan moves
-    let moves = plan_moves(&files, &canonical_path, mode);
+    // Plan moves - use template if provided, otherwise use mode
+    let moves = if let Some(ref t) = template {
+        plan_moves_with_template(&files, &canonical_path, t)
+    } else {
+        plan_moves(&files, &canonical_path, mode)
+    };
 
     if moves.is_empty() {
         println!("{}", "All files are already organized.".green());

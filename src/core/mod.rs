@@ -6,3 +6,4 @@ pub mod duplicates;
 pub mod filters;
 pub mod organizer;
 pub mod scanner;
+pub mod template;

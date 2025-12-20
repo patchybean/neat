@@ -12,8 +12,10 @@ fn parse_conflict_strategy(s: &str) -> Result<ConflictStrategy, String> {
         "overwrite" => Ok(ConflictStrategy::Overwrite),
         "rename" => Ok(ConflictStrategy::Rename),
         "ask" => Ok(ConflictStrategy::Ask),
+        "deduplicate" | "dedup" => Ok(ConflictStrategy::Deduplicate),
+        "backup" => Ok(ConflictStrategy::Backup),
         _ => Err(format!(
-            "Invalid conflict strategy '{}'. Use: skip, overwrite, rename, or ask",
+            "Invalid conflict strategy '{}'. Use: skip, overwrite, rename, ask, deduplicate, or backup",
             s
         )),
     }
@@ -128,6 +130,10 @@ pub enum Commands {
         /// Filter by MIME type (e.g., "image/*", "application/pdf")
         #[arg(long)]
         mime: Option<String>,
+
+        /// Custom destination template (e.g., "{year}/{month}/{category}/{filename}")
+        #[arg(long)]
+        template: Option<String>,
 
         /// How to handle file conflicts (skip, overwrite, rename, ask)
         #[arg(long, value_parser = parse_conflict_strategy, default_value = "rename")]
