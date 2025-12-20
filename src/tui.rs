@@ -27,6 +27,16 @@ pub enum ViewMode {
     FileList,
     Preview,
     Confirm,
+    BatchAction,
+}
+
+/// Batch operation types
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum BatchOperation {
+    MoveToTrash,
+    Delete,
+    CopyTo,
+    MoveTo,
 }
 
 /// Organize mode selection
@@ -103,6 +113,8 @@ pub struct App {
     pub should_quit: bool,
     /// Status message
     pub status_message: String,
+    /// Current batch operation selection
+    pub batch_operation: Option<BatchOperation>,
 }
 
 impl App {
@@ -138,6 +150,7 @@ impl App {
             classifier: Classifier::new(),
             should_quit: false,
             status_message: "Press ? for help".to_string(),
+            batch_operation: None,
         })
     }
 
@@ -237,6 +250,86 @@ impl App {
 
         Ok(())
     }
+
+    /// Show batch action menu
+    pub fn show_batch_menu(&mut self) {
+        if self.selected.is_empty() {
+            self.status_message = "No files selected. Press Space to select files.".to_string();
+            return;
+        }
+        self.view_mode = ViewMode::BatchAction;
+        self.status_message = format!("{} files selected - choose action", self.selected.len());
+    }
+
+    /// Execute batch operation on selected files
+    pub fn execute_batch_operation(&mut self, operation: BatchOperation) -> Result<()> {
+        use std::fs;
+        use trash;
+
+        let selected_files: Vec<FileInfo> = self.selected
+            .iter()
+            .filter_map(|&i| self.files.get(i).cloned())
+            .collect();
+
+        if selected_files.is_empty() {
+            self.status_message = "No files selected".to_string();
+            return Ok(());
+        }
+
+        let count = selected_files.len();
+
+        match operation {
+            BatchOperation::MoveToTrash => {
+                for file in &selected_files {
+                    if let Err(e) = trash::delete(&file.path) {
+                        self.status_message = format!("Error: {}", e);
+                        return Ok(());
+                    }
+                }
+                self.status_message = format!("✓ Moved {} files to trash", count);
+            }
+            BatchOperation::Delete => {
+                for file in &selected_files {
+                    if let Err(e) = fs::remove_file(&file.path) {
+                        self.status_message = format!("Error: {}", e);
+                        return Ok(());
+                    }
+                }
+                self.status_message = format!("✓ Deleted {} files", count);
+            }
+            BatchOperation::CopyTo | BatchOperation::MoveTo => {
+                // For now, just organize with current mode
+                self.generate_preview();
+                return Ok(());
+            }
+        }
+
+        self.view_mode = ViewMode::FileList;
+        self.refresh_files()?;
+        Ok(())
+    }
+
+    /// Refresh file list
+    pub fn refresh_files(&mut self) -> Result<()> {
+        let options = ScanOptions {
+            include_hidden: false,
+            max_depth: Some(1),
+            follow_symlinks: false,
+            ignore_patterns: Vec::new(),
+            min_size: None,
+            max_size: None,
+            after_date: None,
+            before_date: None,
+            ..Default::default()
+        };
+        self.files = scan_directory(&self.path, &options)?;
+        self.selected.clear();
+
+        if !self.files.is_empty() {
+            self.list_state.select(Some(0));
+        }
+        Ok(())
+    }
 }
 
 /// Run the TUI
@@ -290,9 +383,10 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                             app.organize_mode = app.organize_mode.next();
                             app.status_message = format!("Mode: {}", app.organize_mode.name());
                         }
+                        KeyCode::Char('b') => app.show_batch_menu(),
                         KeyCode::Enter | KeyCode::Char('p') => app.generate_preview(),
                         KeyCode::Char('?') => {
-                            app.status_message = "↑↓:nav  Space:select  a:all  d:deselect  m:mode  Enter:preview  q:quit".to_string();
+                            app.status_message = "↑↓:nav  Space:select  a:all  d:deselect  m:mode  b:batch  Enter:preview  q:quit".to_string();
                         }
                         _ => {}
                     },
@@ -313,6 +407,27 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                             }
                         }
                         KeyCode::Char('n') | KeyCode::Esc => {
+                            app.view_mode = ViewMode::FileList;
+                            app.status_message = "Cancelled".to_string();
+                        }
+                        _ => {}
+                    },
+                    ViewMode::BatchAction => match key.code {
+                        KeyCode::Char('t') => {
+                            if let Err(e) = app.execute_batch_operation(BatchOperation::MoveToTrash) {
+                                app.status_message = format!("Error: {}", e);
+                            }
+                        }
+                        KeyCode::Char('d') => {
+                            if let Err(e) = app.execute_batch_operation(BatchOperation::Delete) {
+                                app.status_message = format!("Error: {}", e);
+                            }
+                        }
+                        KeyCode::Char('o') => {
+                            // Organize with current mode
+                            app.generate_preview();
+                        }
+                        KeyCode::Char('q') | KeyCode::Esc => {
                             app.view_mode = ViewMode::FileList;
                             app.status_message = "Cancelled".to_string();
                         }
@@ -354,6 +469,7 @@ fn ui(f: &mut Frame, app: &App) {
         ViewMode::FileList => render_file_list(f, app, chunks[1]),
         ViewMode::Preview => render_preview(f, app, chunks[1]),
         ViewMode::Confirm => render_confirm(f, app, chunks[1]),
+        ViewMode::BatchAction => render_batch_menu(f, app, chunks[1]),
     }
 
     // Status bar
@@ -444,6 +560,20 @@ fn render_confirm(f: &mut Frame, app: &App, area: Rect) {
     let paragraph = Paragraph::new(text)
         .style(Style::default().fg(Color::Yellow))
         .block(Block::default().borders(Borders::ALL).title(" Confirm "));
+
+    f.render_widget(paragraph, area);
+}
+
+fn render_batch_menu(f: &mut Frame, app: &App, area: Rect) {
+    let text = format!(
+        "\n\n  {} files selected\n\n  Actions:\n\n    [t] Move to Trash\n    [d] Delete permanently\n    [o] Organize ({})\n\n    [Esc] Cancel",
+        app.selected.len(),
+        app.organize_mode.name()
+    );
+
+    let paragraph = Paragraph::new(text)
+        .style(Style::default().fg(Color::Cyan))
+        .block(Block::default().borders(Borders::ALL).title(" Batch Actions "));
 
     f.render_widget(paragraph, area);
 }
