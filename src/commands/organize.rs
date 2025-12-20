@@ -1,6 +1,6 @@
 //! Organize command handler
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use colored::*;
@@ -12,10 +12,10 @@ use crate::scanner::{
     format_size, parse_date, parse_size, scan_directory, total_size, ScanOptions,
 };
 
-/// Organize files in a directory by type, date, extension, or metadata
+/// Organize files in directories by type, date, extension, or metadata
 #[allow(clippy::too_many_arguments)]
 pub fn run(
-    path: &Path,
+    paths: &[PathBuf],
     _by_type: bool,
     by_date: bool,
     by_extension: bool,
@@ -66,6 +66,75 @@ pub fn run(
         OrganizeMode::ByAlbum => "album",
     };
 
+    // Parse size filters once (shared across all paths)
+    let min_size_bytes = min_size
+        .map(|s| parse_size(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    let max_size_bytes = max_size
+        .map(|s| parse_size(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    // Parse date filters once (shared across all paths)
+    let after_date = after
+        .map(|s| parse_date(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    let before_date = before
+        .map(|s| parse_date(&s))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    // Process each path
+    for path in paths {
+        organize_single_path(
+            path,
+            mode,
+            mode_name,
+            dry_run,
+            execute,
+            verbose,
+            &ignore,
+            min_size_bytes,
+            max_size_bytes,
+            after_date,
+            before_date,
+            copy,
+            recursive,
+            startswith.clone(),
+            endswith.clone(),
+            contains.clone(),
+            regex.clone(),
+            mime.clone(),
+        )?;
+    }
+
+    Ok(())
+}
+
+/// Process a single directory
+#[allow(clippy::too_many_arguments)]
+fn organize_single_path(
+    path: &Path,
+    mode: OrganizeMode,
+    mode_name: &str,
+    dry_run: bool,
+    execute: bool,
+    verbose: bool,
+    ignore: &[String],
+    min_size_bytes: Option<u64>,
+    max_size_bytes: Option<u64>,
+    after_date: Option<std::time::SystemTime>,
+    before_date: Option<std::time::SystemTime>,
+    copy: bool,
+    recursive: bool,
+    startswith: Option<String>,
+    endswith: Option<String>,
+    contains: Option<String>,
+    regex: Option<String>,
+    mime: Option<String>,
+) -> Result<()> {
     let canonical_path = path
         .canonicalize()
         .with_context(|| format!("Path does not exist: {:?}", path))?;
@@ -82,29 +151,9 @@ pub fn run(
         recursive_msg
     );
 
-    // Parse size filters
-    let min_size_bytes = min_size
-        .map(|s| parse_size(&s))
-        .transpose()
-        .map_err(|e| anyhow::anyhow!("{}", e))?;
-    let max_size_bytes = max_size
-        .map(|s| parse_size(&s))
-        .transpose()
-        .map_err(|e| anyhow::anyhow!("{}", e))?;
-
-    // Parse date filters
-    let after_date = after
-        .map(|s| parse_date(&s))
-        .transpose()
-        .map_err(|e| anyhow::anyhow!("{}", e))?;
-    let before_date = before
-        .map(|s| parse_date(&s))
-        .transpose()
-        .map_err(|e| anyhow::anyhow!("{}", e))?;
-
     // Load ignore patterns from .neatignore file and CLI
     let mut ignore_patterns = crate::scanner::load_ignore_patterns(&canonical_path);
-    ignore_patterns.extend(ignore);
+    ignore_patterns.extend(ignore.iter().cloned());
 
     // Scan directory
     let options = ScanOptions {

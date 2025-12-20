@@ -25,9 +25,9 @@ pub struct Cli {
 pub enum Commands {
     /// Organize files by type or date
     Organize {
-        /// Target directory to organize
-        #[arg(default_value = ".")]
-        path: PathBuf,
+        /// Target directories to organize (supports multiple paths)
+        #[arg(default_value = ".", num_args = 1..)]
+        paths: Vec<PathBuf>,
 
         /// Organize files by their type (Images, Documents, Videos, etc.)
         #[arg(long, group = "organize_mode")]

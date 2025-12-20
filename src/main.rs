@@ -22,7 +22,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Organize {
-            path,
+            paths,
             by_type,
             by_date,
             by_extension,
@@ -46,7 +46,7 @@ fn main() -> Result<()> {
             mime,
         } => {
             commands::organize::run(
-                &path,
+                &paths,
                 by_type,
                 by_date,
                 by_extension,
