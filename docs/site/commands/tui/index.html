@@ -769,6 +769,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../quick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    quick
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    profile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../undo/" class="md-nav__link">
         
   
@@ -967,6 +1023,17 @@
     <span class="md-ellipsis">
       
         Keyboard Shortcuts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#batch-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch Operations
       
     </span>
   </a>
@@ -1407,6 +1474,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#batch-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch Operations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#organization-modes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1537,20 +1615,24 @@
 <td>Select all</td>
 </tr>
 <tr>
-<td><code>A</code></td>
+<td><code>d</code></td>
 <td>Deselect all</td>
 </tr>
 <tr>
-<td><code>1-7</code></td>
-<td>Choose organize mode</td>
+<td><code>m</code></td>
+<td>Change organize mode</td>
 </tr>
 <tr>
-<td><code>Enter</code></td>
+<td><code>b</code></td>
+<td>Open batch action menu</td>
+</tr>
+<tr>
+<td><code>Enter</code> / <code>p</code></td>
 <td>Preview moves</td>
 </tr>
 <tr>
-<td><code>e</code></td>
-<td>Execute moves</td>
+<td><code>?</code></td>
+<td>Show help</td>
 </tr>
 <tr>
 <td><code>q</code></td>
@@ -1558,42 +1640,71 @@
 </tr>
 </tbody>
 </table>
-<h2 id="organization-modes">Organization Modes</h2>
+<h2 id="batch-operations">Batch Operations</h2>
+<p>Press <code>b</code> with selected files to open the batch action menu:</p>
 <table>
 <thead>
 <tr>
 <th>Key</th>
-<th>Mode</th>
+<th>Action</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>1</code></td>
+<td><code>t</code></td>
+<td>Move to trash</td>
+</tr>
+<tr>
+<td><code>d</code></td>
+<td>Delete permanently</td>
+</tr>
+<tr>
+<td><code>o</code></td>
+<td>Organize with current mode</td>
+</tr>
+<tr>
+<td><code>Esc</code></td>
+<td>Cancel</td>
+</tr>
+</tbody>
+</table>
+<h2 id="organization-modes">Organization Modes</h2>
+<p>Press <code>m</code> to cycle through modes:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
 <td>By Type</td>
+<td>Images/, Documents/, Videos/, etc.</td>
 </tr>
 <tr>
-<td><code>2</code></td>
 <td>By Date</td>
+<td>YYYY/MM/ structure</td>
 </tr>
 <tr>
-<td><code>3</code></td>
 <td>By Extension</td>
+<td>PDF/, JPG/, MP4/, etc.</td>
 </tr>
 <tr>
-<td><code>4</code></td>
-<td>By Camera (EXIF)</td>
+<td>By Camera</td>
+<td>Camera model from EXIF</td>
 </tr>
 <tr>
-<td><code>5</code></td>
-<td>By Date Taken (EXIF)</td>
+<td>By Date Taken</td>
+<td>Date from EXIF metadata</td>
 </tr>
 <tr>
-<td><code>6</code></td>
-<td>By Artist (Audio)</td>
+<td>By Artist</td>
+<td>Artist from audio tags</td>
 </tr>
 <tr>
-<td><code>7</code></td>
-<td>By Album (Audio)</td>
+<td>By Album</td>
+<td>Artist/Album/ structure</td>
 </tr>
 </tbody>
 </table>

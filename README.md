@@ -20,6 +20,7 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **Clean Old Files** - Remove files older than a specified duration
 - **Watch Mode** - Auto-organize new files as they appear
 - **Custom Rules** - Define your own organization rules via TOML config
+- **Template Variables** - Flexible destination paths with `{year}`, `{category}`, `{camera}`, etc.
 - **Undo Operations** - Rollback your last operation
 - **Interactive TUI** - Visual file browser with keyboard navigation
 - **Trash Support** - Move files to system trash instead of permanent deletion
@@ -85,6 +86,16 @@ neatcli organize ~/Music --by-album --execute
 
 # Ignore specific patterns
 neatcli organize ~/Downloads --by-type -I "*.log" -I "temp_*" --execute
+
+# Custom template for flexible organization
+neatcli organize ~/Photos --template "{year}/{month}/{category}/{filename}" --execute
+
+# Template with EXIF metadata
+neatcli organize ~/Photos --template "{taken.year}/{taken.month}/{camera}/{filename}" --execute
+
+# Use preset templates
+neatcli organize ~/Photos --template "photos" --execute
+neatcli organize ~/Music --template "music" --execute
 ```
 
 ### Find Duplicates
@@ -231,6 +242,29 @@ pattern = "Screenshot*.png"
 destination = "Images/Screenshots/{year}-{month}"
 priority = 5
 ```
+
+### Template Variables
+
+Use the `--template` flag for custom organization paths:
+
+```bash
+# Custom template with variables
+neatcli organize ~/Photos --template "{year}/{month}/{category}/{filename}" --execute
+```
+
+**Available Variables:**
+
+| Variable | Description |
+|----------|-------------|
+| `{filename}` | File name without extension |
+| `{ext}` | File extension |
+| `{category}` | File type (Images, Documents, etc.) |
+| `{year}`, `{month}`, `{day}` | Modified date parts |
+| `{camera}` | Camera model (EXIF) |
+| `{taken.year}`, `{taken.month}` | Date taken (EXIF) |
+| `{artist}`, `{album}` | Audio metadata |
+
+**Preset Templates:** `photos`, `music`, `by-type`, `by-date`, `by-extension`, `by-camera`, `by-artist`, `by-album`
 
 ### Shell Completions
 

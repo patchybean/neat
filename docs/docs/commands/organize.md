@@ -29,6 +29,96 @@ Choose how files should be organized:
 !!! info "Default Mode"
     If no mode is specified, `--by-type` is used.
 
+## Template Variables
+
+Use the `--template` flag for custom destination paths with flexible variables.
+
+### Usage
+
+```bash
+neatcli organize ~/Photos --template "{year}/{month}/{category}/{filename}" --execute
+```
+
+### Available Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{filename}` | File name without extension | `photo` |
+| `{name}` | Full file name with extension | `photo.jpg` |
+| `{ext}` / `{extension}` | File extension | `jpg` |
+| `{category}` / `{type}` | File category (Images, Documents, etc.) | `Images` |
+| `{year}` | Year from modified date | `2024` |
+| `{month}` | Month from modified date (zero-padded) | `12` |
+| `{day}` | Day from modified date (zero-padded) | `25` |
+| `{date}` | Full date (YYYY-MM-DD) | `2024-12-25` |
+| `{size}` | File size in bytes | `1048576` |
+| `{size_kb}` | File size in KB | `1024` |
+| `{size_mb}` | File size in MB | `1` |
+
+#### Current Date/Time Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{now.year}` | Current year | `2024` |
+| `{now.month}` | Current month | `12` |
+| `{now.day}` | Current day | `22` |
+| `{now.date}` | Current date | `2024-12-22` |
+
+#### Image Metadata (EXIF)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{camera}` | Camera model from EXIF | `Canon EOS 5D` |
+| `{date_taken}` | Date taken from EXIF | `2024/12` |
+| `{taken.year}` | Year from EXIF date | `2024` |
+| `{taken.month}` | Month from EXIF date | `12` |
+
+#### Audio Metadata
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{artist}` | Artist from audio tags | `Taylor Swift` |
+| `{album}` | Album from audio tags | `1989` |
+
+### Preset Templates
+
+Use these preset names instead of writing a full template:
+
+| Preset | Template |
+|--------|----------|
+| `by-type` / `type` | `{category}/{filename}` |
+| `by-date` / `date` | `{year}/{month}/{filename}` |
+| `by-extension` / `ext` | `{extension}/{filename}` |
+| `by-camera` / `camera` | `{camera}/{filename}` |
+| `by-date-taken` / `date-taken` | `{taken.year}/{taken.month}/{filename}` |
+| `by-artist` / `artist` | `{artist}/{filename}` |
+| `by-album` / `album` | `{artist}/{album}/{filename}` |
+| `photos` | `{taken.year}/{taken.month}/{filename}` |
+| `music` | `{artist}/{album}/{filename}` |
+
+### Template Examples
+
+```bash
+# Organize by year and category
+neatcli organize ~/Downloads --template "{year}/{category}/{filename}" --execute
+
+# Photos with camera info
+neatcli organize ~/Photos --template "{taken.year}/{taken.month}/{camera}/{filename}" --execute
+
+# Music with artist/album structure
+neatcli organize ~/Music --template "{artist}/{album}/{filename}" --execute
+
+# Use presets
+neatcli organize ~/Photos --template "photos" --execute
+neatcli organize ~/Music --template "music" --execute
+
+# Organize by current date (for backup purposes)
+neatcli organize ~/Downloads --template "backup/{now.date}/{category}/{filename}" --execute
+```
+
+!!! tip "Missing Variables"
+    If a variable is not available (e.g., no EXIF data), it will be replaced with `Unknown`.
+
 ## Options
 
 ### Execution Options

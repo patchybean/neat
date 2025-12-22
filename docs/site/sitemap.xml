@@ -2,86 +2,94 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://neatcli.readthedocs.io/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/clean/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/completions/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/config/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/duplicates/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/history/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/organize/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
+    </url>
+    <url>
+         <loc>https://neatcli.readthedocs.io/commands/profile/</loc>
+         <lastmod>2025-12-22</lastmod>
+    </url>
+    <url>
+         <loc>https://neatcli.readthedocs.io/commands/quick/</loc>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/similar/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/stats/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/tui/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/undo/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/commands/watch/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/examples/music/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/examples/photos/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/examples/workflows/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/getting-started/configuration/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/getting-started/installation/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/getting-started/quickstart/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/reference/filters/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/reference/mime-types/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
     <url>
          <loc>https://neatcli.readthedocs.io/reference/size-date/</loc>
-         <lastmod>2025-12-19</lastmod>
+         <lastmod>2025-12-22</lastmod>
     </url>
 </urlset>
