@@ -20,9 +20,11 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **Clean Old Files** - Remove files older than a specified duration
 - **Watch Mode** - Auto-organize new files as they appear
 - **Custom Rules** - Define your own organization rules via TOML config
+- **Shell Hooks** - Execute shell commands after file operations with `post_action`
+- **Content Filtering** - Filter files by text content with `--content` flag
 - **Template Variables** - Flexible destination paths with `{year}`, `{category}`, `{camera}`, etc.
 - **Undo Operations** - Rollback your last operation
-- **Interactive TUI** - Visual file browser with keyboard navigation
+- **Interactive TUI** - Visual file browser with keyboard navigation and conflict resolver
 - **Trash Support** - Move files to system trash instead of permanent deletion
 - **Shell Completions** - Tab completion for Bash, Zsh, Fish, PowerShell
 - **Ignore Patterns** - Skip files via `.neatignore` or `-I` flag
@@ -96,6 +98,9 @@ neatcli organize ~/Photos --template "{taken.year}/{taken.month}/{camera}/{filen
 # Use preset templates
 neatcli organize ~/Photos --template "photos" --execute
 neatcli organize ~/Music --template "music" --execute
+
+# Filter by text content (finds files containing "invoice")
+neatcli organize ~/Documents --content "invoice" --execute
 ```
 
 ### Find Duplicates
@@ -235,6 +240,7 @@ name = "Invoices"
 pattern = "*invoice*.pdf"
 destination = "Documents/Invoices/{year}"
 priority = 10
+post_action = "echo 'Organized invoice: {name}'"
 
 [[rules]]
 name = "Screenshots"
