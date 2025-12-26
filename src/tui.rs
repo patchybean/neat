@@ -471,7 +471,8 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                         KeyCode::Char('s') => {
                             // Skip this conflict
                             if !app.conflicts.is_empty() {
-                                app.conflicts[app.conflict_index].resolution = Some(ConflictResolution::Skip);
+                                app.conflicts[app.conflict_index].resolution =
+                                    Some(ConflictResolution::Skip);
                                 if app.conflict_index < app.conflicts.len() - 1 {
                                     app.conflict_index += 1;
                                 } else {
@@ -485,7 +486,8 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                         KeyCode::Char('o') => {
                             // Overwrite
                             if !app.conflicts.is_empty() {
-                                app.conflicts[app.conflict_index].resolution = Some(ConflictResolution::Overwrite);
+                                app.conflicts[app.conflict_index].resolution =
+                                    Some(ConflictResolution::Overwrite);
                                 if app.conflict_index < app.conflicts.len() - 1 {
                                     app.conflict_index += 1;
                                 } else {
@@ -499,7 +501,8 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                         KeyCode::Char('r') => {
                             // Rename
                             if !app.conflicts.is_empty() {
-                                app.conflicts[app.conflict_index].resolution = Some(ConflictResolution::Rename);
+                                app.conflicts[app.conflict_index].resolution =
+                                    Some(ConflictResolution::Rename);
                                 if app.conflict_index < app.conflicts.len() - 1 {
                                     app.conflict_index += 1;
                                 } else {
@@ -513,7 +516,8 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                         KeyCode::Char('k') => {
                             // Keep both
                             if !app.conflicts.is_empty() {
-                                app.conflicts[app.conflict_index].resolution = Some(ConflictResolution::KeepBoth);
+                                app.conflicts[app.conflict_index].resolution =
+                                    Some(ConflictResolution::KeepBoth);
                                 if app.conflict_index < app.conflicts.len() - 1 {
                                     app.conflict_index += 1;
                                 } else {

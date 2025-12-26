@@ -53,8 +53,17 @@ fn is_plain_text(path: &Path) -> bool {
 
     matches!(
         ext.as_deref(),
-        Some("txt") | Some("md") | Some("log") | Some("csv") | Some("json") | Some("xml")
-            | Some("yaml") | Some("yml") | Some("toml") | Some("ini") | Some("cfg")
+        Some("txt")
+            | Some("md")
+            | Some("log")
+            | Some("csv")
+            | Some("json")
+            | Some("xml")
+            | Some("yaml")
+            | Some("yml")
+            | Some("toml")
+            | Some("ini")
+            | Some("cfg")
     )
 }
 
