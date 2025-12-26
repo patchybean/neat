@@ -44,6 +44,7 @@ fn main() -> Result<()> {
             contains,
             regex,
             mime,
+            content,
             template,
             on_conflict,
         } => {
@@ -71,6 +72,7 @@ fn main() -> Result<()> {
                 contains,
                 regex,
                 mime,
+                content,
                 template,
                 on_conflict,
             )?;

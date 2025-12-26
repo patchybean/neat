@@ -131,6 +131,10 @@ pub enum Commands {
         #[arg(long)]
         mime: Option<String>,
 
+        /// Filter files containing this text in their content (TXT, MD, JSON, etc.)
+        #[arg(long)]
+        content: Option<String>,
+
         /// Custom destination template (e.g., "{year}/{month}/{category}/{filename}")
         #[arg(long)]
         template: Option<String>,

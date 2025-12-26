@@ -65,6 +65,11 @@ pub struct Rule {
     /// Priority (higher = processed first)
     #[serde(default)]
     pub priority: i32,
+
+    /// Shell command to execute after moving file (optional)
+    /// Supports {file}, {dest}, {name}, {ext}, {dir} placeholders
+    #[serde(default)]
+    pub post_action: Option<String>,
 }
 
 impl Rule {
@@ -136,18 +141,21 @@ impl Config {
                     pattern: "*invoice*.pdf".to_string(),
                     destination: "Documents/Invoices/{year}".to_string(),
                     priority: 10,
+                    post_action: Some("echo 'Organized invoice: {name}'".to_string()),
                 },
                 Rule {
                     name: "Screenshots".to_string(),
                     pattern: "Screenshot*.png".to_string(),
                     destination: "Images/Screenshots/{year}-{month}".to_string(),
                     priority: 5,
+                    post_action: None,
                 },
                 Rule {
                     name: "Downloads by Month".to_string(),
                     pattern: "*".to_string(),
                     destination: "Archive/{year}/{month}".to_string(),
                     priority: 0,
+                    post_action: None,
                 },
             ],
             settings: Settings::default(),
@@ -178,6 +186,7 @@ mod tests {
             pattern: "*.pdf".to_string(),
             destination: "Documents".to_string(),
             priority: 0,
+            post_action: None,
         };
 
         assert!(rule.matches("document.pdf"));
@@ -192,6 +201,7 @@ mod tests {
             pattern: "*invoice*.pdf".to_string(),
             destination: "Documents/Invoices".to_string(),
             priority: 0,
+            post_action: None,
         };
 
         assert!(rule.matches("invoice_2024.pdf"));
@@ -206,6 +216,7 @@ mod tests {
             pattern: "*.pdf".to_string(),
             destination: "Documents".to_string(),
             priority: 0,
+            post_action: None,
         };
 
         let base = PathBuf::from("/home/user");
@@ -220,6 +231,7 @@ mod tests {
             pattern: "*".to_string(),
             destination: "Files/{ext}".to_string(),
             priority: 0,
+            post_action: None,
         };
 
         let base = PathBuf::from("/base");
@@ -234,6 +246,7 @@ mod tests {
             pattern: "*".to_string(),
             destination: "Files/{ext}".to_string(),
             priority: 0,
+            post_action: None,
         };
 
         let base = PathBuf::from("/base");
@@ -250,18 +263,21 @@ mod tests {
                     pattern: "*".to_string(),
                     destination: "low".to_string(),
                     priority: 0,
+                    post_action: None,
                 },
                 Rule {
                     name: "High".to_string(),
                     pattern: "*".to_string(),
                     destination: "high".to_string(),
                     priority: 10,
+                    post_action: None,
                 },
                 Rule {
                     name: "Medium".to_string(),
                     pattern: "*".to_string(),
                     destination: "medium".to_string(),
                     priority: 5,
+                    post_action: None,
                 },
             ],
             settings: Settings::default(),
@@ -282,12 +298,14 @@ mod tests {
                     pattern: "*.pdf".to_string(),
                     destination: "Documents".to_string(),
                     priority: 5,
+                    post_action: None,
                 },
                 Rule {
                     name: "Everything".to_string(),
                     pattern: "*".to_string(),
                     destination: "Other".to_string(),
                     priority: 0,
+                    post_action: None,
                 },
             ],
             settings: Settings::default(),
@@ -312,6 +330,7 @@ mod tests {
                 pattern: "*.pdf".to_string(),
                 destination: "Documents".to_string(),
                 priority: 0,
+                post_action: None,
             }],
             settings: Settings::default(),
         };

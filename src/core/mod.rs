@@ -2,6 +2,7 @@
 
 pub mod classifier;
 pub mod cleaner;
+pub mod content;
 pub mod duplicates;
 pub mod filters;
 pub mod organizer;

@@ -28,6 +28,7 @@ pub enum ViewMode {
     Preview,
     Confirm,
     BatchAction,
+    ConflictResolver,
 }
 
 /// Batch operation types
@@ -39,6 +40,23 @@ pub enum BatchOperation {
     CopyTo,
     #[allow(dead_code)]
     MoveTo,
+}
+
+/// Conflict resolution choice
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ConflictResolution {
+    Skip,
+    Overwrite,
+    Rename,
+    KeepBoth,
+}
+
+/// A file conflict that needs resolution
+#[derive(Debug, Clone)]
+pub struct Conflict {
+    pub source: PathBuf,
+    pub dest: PathBuf,
+    pub resolution: Option<ConflictResolution>,
 }
 
 /// Organize mode selection
@@ -118,6 +136,10 @@ pub struct App {
     /// Current batch operation selection
     #[allow(dead_code)]
     pub batch_operation: Option<BatchOperation>,
+    /// Conflicts to resolve
+    pub conflicts: Vec<Conflict>,
+    /// Current conflict index
+    pub conflict_index: usize,
 }
 
 impl App {
@@ -154,6 +176,8 @@ impl App {
             should_quit: false,
             status_message: "Press ? for help".to_string(),
             batch_operation: None,
+            conflicts: Vec::new(),
+            conflict_index: 0,
         })
     }
 
@@ -442,6 +466,81 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                         }
                         _ => {}
                     },
+                    ViewMode::ConflictResolver => match key.code {
+                        KeyCode::Char('s') => {
+                            // Skip this conflict
+                            if !app.conflicts.is_empty() {
+                                app.conflicts[app.conflict_index].resolution = Some(ConflictResolution::Skip);
+                                if app.conflict_index < app.conflicts.len() - 1 {
+                                    app.conflict_index += 1;
+                                } else {
+                                    app.view_mode = ViewMode::FileList;
+                                    app.status_message = "All conflicts resolved".to_string();
+                                    app.conflicts.clear();
+                                    app.conflict_index = 0;
+                                }
+                            }
+                        }
+                        KeyCode::Char('o') => {
+                            // Overwrite
+                            if !app.conflicts.is_empty() {
+                                app.conflicts[app.conflict_index].resolution = Some(ConflictResolution::Overwrite);
+                                if app.conflict_index < app.conflicts.len() - 1 {
+                                    app.conflict_index += 1;
+                                } else {
+                                    app.view_mode = ViewMode::FileList;
+                                    app.status_message = "All conflicts resolved".to_string();
+                                    app.conflicts.clear();
+                                    app.conflict_index = 0;
+                                }
+                            }
+                        }
+                        KeyCode::Char('r') => {
+                            // Rename
+                            if !app.conflicts.is_empty() {
+                                app.conflicts[app.conflict_index].resolution = Some(ConflictResolution::Rename);
+                                if app.conflict_index < app.conflicts.len() - 1 {
+                                    app.conflict_index += 1;
+                                } else {
+                                    app.view_mode = ViewMode::FileList;
+                                    app.status_message = "All conflicts resolved".to_string();
+                                    app.conflicts.clear();
+                                    app.conflict_index = 0;
+                                }
+                            }
+                        }
+                        KeyCode::Char('k') => {
+                            // Keep both
+                            if !app.conflicts.is_empty() {
+                                app.conflicts[app.conflict_index].resolution = Some(ConflictResolution::KeepBoth);
+                                if app.conflict_index < app.conflicts.len() - 1 {
+                                    app.conflict_index += 1;
+                                } else {
+                                    app.view_mode = ViewMode::FileList;
+                                    app.status_message = "All conflicts resolved".to_string();
+                                    app.conflicts.clear();
+                                    app.conflict_index = 0;
+                                }
+                            }
+                        }
+                        KeyCode::Left => {
+                            if app.conflict_index > 0 {
+                                app.conflict_index -= 1;
+                            }
+                        }
+                        KeyCode::Right => {
+                            if app.conflict_index < app.conflicts.len().saturating_sub(1) {
+                                app.conflict_index += 1;
+                            }
+                        }
+                        KeyCode::Esc => {
+                            app.view_mode = ViewMode::FileList;
+                            app.status_message = "Cancelled".to_string();
+                            app.conflicts.clear();
+                            app.conflict_index = 0;
+                        }
+                        _ => {}
+                    },
                 }
             }
         }
@@ -479,6 +578,7 @@ fn ui(f: &mut Frame, app: &App) {
         ViewMode::Preview => render_preview(f, app, chunks[1]),
         ViewMode::Confirm => render_confirm(f, app, chunks[1]),
         ViewMode::BatchAction => render_batch_menu(f, app, chunks[1]),
+        ViewMode::ConflictResolver => render_conflict_resolver(f, app, chunks[1]),
     }
 
     // Status bar
@@ -586,6 +686,57 @@ fn render_batch_menu(f: &mut Frame, app: &App, area: Rect) {
             Block::default()
                 .borders(Borders::ALL)
                 .title(" Batch Actions "),
+        );
+
+    f.render_widget(paragraph, area);
+}
+
+fn render_conflict_resolver(f: &mut Frame, app: &App, area: Rect) {
+    if app.conflicts.is_empty() {
+        let text = "\n\n  No conflicts to resolve.";
+        let paragraph = Paragraph::new(text)
+            .style(Style::default().fg(Color::Green))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Conflict Resolver "),
+            );
+        f.render_widget(paragraph, area);
+        return;
+    }
+
+    let conflict = &app.conflicts[app.conflict_index];
+    let source_name = conflict
+        .source
+        .file_name()
+        .map(|s| s.to_string_lossy())
+        .unwrap_or_default();
+    let dest_name = conflict
+        .dest
+        .file_name()
+        .map(|s| s.to_string_lossy())
+        .unwrap_or_default();
+    let dest_dir = conflict
+        .dest
+        .parent()
+        .map(|p| p.display().to_string())
+        .unwrap_or_default();
+
+    let text = format!(
+        "\n  Conflict {}/{}\n\n  Source: {}\n  Destination: {}/{}\n\n  File already exists at destination!\n\n  Choose action:\n\n    [s] Skip this file\n    [o] Overwrite existing\n    [r] Rename (add suffix)\n    [k] Keep both files\n\n    [←/→] Navigate conflicts\n    [Esc] Cancel all",
+        app.conflict_index + 1,
+        app.conflicts.len(),
+        source_name,
+        dest_dir,
+        dest_name
+    );
+
+    let paragraph = Paragraph::new(text)
+        .style(Style::default().fg(Color::Yellow))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" ⚠ Conflict Resolver "),
         );
 
     f.render_widget(paragraph, area);

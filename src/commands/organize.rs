@@ -39,6 +39,7 @@ pub fn run(
     contains: Option<String>,
     regex: Option<String>,
     mime: Option<String>,
+    content_filter: Option<String>,
     template: Option<String>,
     on_conflict: ConflictStrategy,
 ) -> Result<()> {
@@ -110,6 +111,7 @@ pub fn run(
             contains.clone(),
             regex.clone(),
             mime.clone(),
+            content_filter.clone(),
             template.clone(),
             on_conflict,
         )?;
@@ -139,6 +141,7 @@ fn organize_single_path(
     contains: Option<String>,
     regex: Option<String>,
     mime: Option<String>,
+    content_filter: Option<String>,
     template: Option<String>,
     on_conflict: ConflictStrategy,
 ) -> Result<()> {
@@ -186,6 +189,17 @@ fn organize_single_path(
     };
 
     let files = scan_directory(&canonical_path, &options)?;
+
+    // Apply content filter if specified
+    let files = if let Some(ref pattern) = content_filter {
+        use crate::content::matches_content;
+        files
+            .into_iter()
+            .filter(|f| matches_content(&f.path, pattern))
+            .collect()
+    } else {
+        files
+    };
 
     if files.is_empty() {
         println!("{}", "No files found to organize.".yellow());
