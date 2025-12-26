@@ -260,13 +260,17 @@ mod tests {
 
     #[test]
     fn test_date_taken_folder_parsing() {
-        let mut meta = ImageMetadata::default();
+        let meta1 = ImageMetadata {
+            date_taken: Some("\"2024:06:15 10:30:00\"".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(meta1.date_taken_folder(), Some("2024/06".to_string()));
 
-        meta.date_taken = Some("\"2024:06:15 10:30:00\"".to_string());
-        assert_eq!(meta.date_taken_folder(), Some("2024/06".to_string()));
-
-        meta.date_taken = Some("2023:12:25 08:00:00".to_string());
-        assert_eq!(meta.date_taken_folder(), Some("2023/12".to_string()));
+        let meta2 = ImageMetadata {
+            date_taken: Some("2023:12:25 08:00:00".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(meta2.date_taken_folder(), Some("2023/12".to_string()));
     }
 
     #[test]

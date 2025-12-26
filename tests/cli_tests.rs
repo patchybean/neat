@@ -1,5 +1,7 @@
 //! Integration tests for neatcli
 
+#![allow(deprecated)] // cargo_bin is deprecated but still works fine for standard setups
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs::{self, File};
