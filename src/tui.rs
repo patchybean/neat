@@ -28,6 +28,7 @@ pub enum ViewMode {
     Preview,
     Confirm,
     BatchAction,
+    #[allow(dead_code)]
     ConflictResolver,
 }
 

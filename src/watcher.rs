@@ -122,6 +122,9 @@ pub fn watch_directory(
                                 .unwrap_or_default();
 
                             if auto_execute {
+                                // Get the matched rule to check for post_action
+                                let matched_rule = config.and_then(|cfg| cfg.find_matching_rule(&file_info.name));
+                                
                                 match execute_moves(&moves, "watch", ConflictStrategy::Rename) {
                                     Ok(_) => {
                                         println!(
@@ -129,6 +132,19 @@ pub fn watch_directory(
                                             "✓".green(),
                                             dest_folder.cyan()
                                         );
+                                        
+                                        // Execute post_action hook if configured
+                                        if let Some(rule) = matched_rule {
+                                            if let Some(ref hook_cmd) = rule.post_action {
+                                                use crate::hooks::execute_hook;
+                                                let mv = &moves[0];
+                                                if let Err(e) = execute_hook(hook_cmd, &mv.from, &mv.to) {
+                                                    println!("  {} Hook failed: {}", "⚠".yellow(), e);
+                                                } else {
+                                                    println!("  {} Hook executed", "⚡".cyan());
+                                                }
+                                            }
+                                        }
                                     }
                                     Err(e) => {
                                         println!("  {} Failed: {}", "✗".red(), e);
