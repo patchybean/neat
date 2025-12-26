@@ -73,6 +73,7 @@ nav:
     - Common Workflows: examples/workflows.md
     - Photo Organization: examples/photos.md
     - Music Library: examples/music.md
+  - Changelog: changelog.md
 
 extra:
   social:
