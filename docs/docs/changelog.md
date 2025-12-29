@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.6.0] - 2025-12-29
+
 ### Added
 - **PDF Content Extraction**: `--content` flag now works with PDF files (built-in, no external tools needed)
+  - Uses `pdf-extract` crate with optional `pdf` feature (enabled by default)
+  - Disable with: `cargo install neatcli --no-default-features`
 
 ---
 
