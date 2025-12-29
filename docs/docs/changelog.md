@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **PDF Content Extraction**: `--content` flag now works with PDF files (built-in, no external tools needed)
+
 ---
 
 ## [0.5.0] - 2025-12-26

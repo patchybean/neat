@@ -11,6 +11,10 @@ homepage = "https://github.com/patchybean/neatcli"
 readme = "README.md"
 authors = ["Patchy Bean"]
 
+[features]
+default = ["pdf"]
+pdf = ["dep:pdf-extract"]
+
 [dependencies]
 clap = { version = "4.4", features = ["derive"] }
 clap_complete = "4.4"
@@ -39,6 +43,7 @@ image_hasher = "2.0"
 rayon = "1.10"
 mime_guess = "2.0"
 regex = "1.10"
+pdf-extract = { version = "0.7", optional = true }
 
 [[bin]]
 name = "neatcli"
@@ -48,3 +53,4 @@ path = "src/main.rs"
 tempfile = "3.23"
 assert_cmd = "2.0"
 predicates = "3.0"
+

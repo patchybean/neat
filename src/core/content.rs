@@ -12,24 +12,47 @@ pub fn is_content_extractable(path: &Path) -> bool {
         .and_then(|e| e.to_str())
         .map(|e| e.to_lowercase());
 
-    matches!(
-        ext.as_deref(),
-        Some("txt") | Some("md") | Some("log") | Some("csv") | Some("json") | Some("xml")
-    )
+    match ext.as_deref() {
+        Some("txt") | Some("md") | Some("log") | Some("csv") | Some("json") | Some("xml") => true,
+        #[cfg(feature = "pdf")]
+        Some("pdf") => true,
+        _ => false,
+    }
 }
 
 /// Extract text content from a file
-/// Currently supports plain text files. PDF support requires external dependencies.
+/// Supports plain text files and PDF (when pdf feature is enabled).
 pub fn extract_text(path: &Path) -> Result<String> {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_lowercase());
+
     // For plain text files, just read the content
     if is_plain_text(path) {
         let content = fs::read_to_string(path)?;
         return Ok(content);
     }
 
-    // For other supported types, return empty for now
-    // PDF support would require pdf-extract crate
+    // PDF extraction (when feature is enabled)
+    #[cfg(feature = "pdf")]
+    if ext.as_deref() == Some("pdf") {
+        return extract_pdf_text(path);
+    }
+
+    // For unsupported types, return empty
     Ok(String::new())
+}
+
+/// Extract text from PDF file
+#[cfg(feature = "pdf")]
+fn extract_pdf_text(path: &Path) -> Result<String> {
+    use anyhow::Context;
+
+    let bytes = fs::read(path).with_context(|| format!("Failed to read PDF: {:?}", path))?;
+
+    pdf_extract::extract_text_from_mem(&bytes)
+        .map_err(|e| anyhow::anyhow!("PDF extraction failed: {}", e))
 }
 
 /// Check if file content contains a pattern (case-insensitive)
@@ -80,6 +103,10 @@ mod tests {
         assert!(is_content_extractable(Path::new("data.json")));
         assert!(!is_content_extractable(Path::new("image.png")));
         assert!(!is_content_extractable(Path::new("video.mp4")));
+
+        // PDF should be extractable when pdf feature is enabled
+        #[cfg(feature = "pdf")]
+        assert!(is_content_extractable(Path::new("document.pdf")));
     }
 
     #[test]

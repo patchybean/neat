@@ -21,7 +21,7 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **Watch Mode** - Auto-organize new files as they appear
 - **Custom Rules** - Define your own organization rules via TOML config
 - **Shell Hooks** - Execute shell commands after file operations with `post_action`
-- **Content Filtering** - Filter files by text content with `--content` flag
+- **Content Filtering** - Filter files by text content with `--content` flag (supports PDF, TXT, MD, JSON)
 - **Template Variables** - Flexible destination paths with `{year}`, `{category}`, `{camera}`, etc.
 - **Undo Operations** - Rollback your last operation
 - **Interactive TUI** - Visual file browser with keyboard navigation and conflict resolver
