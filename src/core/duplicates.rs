@@ -1,4 +1,4 @@
-//! Duplicate detection using xxHash3 content hashing
+//! Duplicate detection using direct byte comparison (faster than hashing)
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -9,6 +9,7 @@ use std::sync::Mutex;
 use anyhow::Result;
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
+use memmap2::Mmap;
 use rayon::prelude::*;
 use xxhash_rust::xxh3::xxh3_64;
 
@@ -34,12 +35,12 @@ impl DuplicateGroup {
     }
 }
 
-/// Threshold for using partial hashing (files larger than this use partial hash first)
-const PARTIAL_HASH_THRESHOLD: u64 = 1024 * 1024; // 1MB
-/// Size of chunks to read from start and end for partial hashing
-const PARTIAL_HASH_CHUNK_SIZE: usize = 512 * 1024; // 512KB
+/// Chunk size for comparing large files (64KB)
+const COMPARE_CHUNK_SIZE: usize = 64 * 1024;
+/// Threshold for using memory-mapped files (files larger than this use mmap)
+const MMAP_THRESHOLD: u64 = 64 * 1024; // 64KB
 
-/// Find duplicate files by content
+/// Find duplicate files by content using hybrid hash + direct compare
 pub fn find_duplicates(files: &[FileInfo]) -> Result<Vec<DuplicateGroup>> {
     if files.is_empty() {
         return Ok(Vec::new());
@@ -49,13 +50,12 @@ pub fn find_duplicates(files: &[FileInfo]) -> Result<Vec<DuplicateGroup>> {
     let mut by_size: HashMap<u64, Vec<&FileInfo>> = HashMap::new();
     for file in files {
         if file.size > 0 {
-            // Skip empty files
             by_size.entry(file.size).or_default().push(file);
         }
     }
 
-    // Filter to only groups with potential duplicates
-    let potential_dups: Vec<_> = by_size
+    // Filter to only groups with potential duplicates (same size)
+    let potential_dups: Vec<Vec<&FileInfo>> = by_size
         .into_values()
         .filter(|group| group.len() > 1)
         .collect();
@@ -64,9 +64,7 @@ pub fn find_duplicates(files: &[FileInfo]) -> Result<Vec<DuplicateGroup>> {
         return Ok(Vec::new());
     }
 
-    // Step 2: For large files, use partial hashing first (first + last 512KB)
     let total_files: usize = potential_dups.iter().map(|g| g.len()).sum();
-
     let pb = ProgressBar::new(total_files as u64);
     pb.set_style(
         ProgressStyle::default_bar()
@@ -75,123 +73,194 @@ pub fn find_duplicates(files: &[FileInfo]) -> Result<Vec<DuplicateGroup>> {
             .progress_chars("█▓░"),
     );
 
-    // Flatten all files to hash
-    let files_to_hash: Vec<&FileInfo> = potential_dups.into_iter().flatten().collect();
+    // Step 2: Quick hash first 4KB to group files (O(n) instead of O(n²))
+    let files_flat: Vec<&FileInfo> = potential_dups.into_iter().flatten().collect();
+    let by_quick_hash: Mutex<HashMap<String, Vec<&FileInfo>>> = Mutex::new(HashMap::new());
 
-    // First pass: partial hash for large files, full hash for small files
-    let by_partial_hash: Mutex<HashMap<String, Vec<&FileInfo>>> = Mutex::new(HashMap::new());
-
-    files_to_hash.par_iter().for_each(|file| {
-        let hash = if file.size > PARTIAL_HASH_THRESHOLD {
-            hash_file_partial(&file.path)
-        } else {
-            hash_file_full(&file.path)
-        };
-        
-        if let Ok(h) = hash {
-            let mut map = by_partial_hash.lock().unwrap();
-            map.entry(h).or_default().push(*file);
+    files_flat.par_iter().for_each(|file| {
+        if let Ok(hash) = quick_hash_4kb(&file.path) {
+            let mut map = by_quick_hash.lock().unwrap();
+            map.entry(hash).or_default().push(*file);
         }
         pb.inc(1);
     });
 
     pb.finish_and_clear();
 
-    // Step 3: For large files with matching partial hashes, do full hash
-    let partial_results = by_partial_hash.into_inner().unwrap();
-    let by_hash: Mutex<HashMap<String, Vec<FileInfo>>> = Mutex::new(HashMap::new());
-
-    // Files that need full hashing (large files with matching partial hashes)
-    let needs_full_hash: Vec<_> = partial_results
-        .iter()
-        .filter(|(_, files)| files.len() > 1 && files[0].size > PARTIAL_HASH_THRESHOLD)
-        .flat_map(|(_, files)| files.iter())
+    // Step 3: For groups with matching quick hash, verify with full comparison
+    let quick_hash_groups = by_quick_hash.into_inner().unwrap();
+    let candidates: Vec<Vec<&FileInfo>> = quick_hash_groups
+        .into_values()
+        .filter(|group| group.len() > 1)
         .collect();
 
-    // Small files already have full hashes, add them directly
-    for (hash, files) in &partial_results {
-        if files.len() > 1 && files[0].size <= PARTIAL_HASH_THRESHOLD {
-            let mut map = by_hash.lock().unwrap();
-            for file in files {
-                map.entry(hash.clone()).or_default().push((*file).clone());
+    if candidates.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    // Step 4: Direct compare within each candidate group (small groups, fast)
+    let duplicates: Mutex<Vec<DuplicateGroup>> = Mutex::new(Vec::new());
+
+    candidates.par_iter().for_each(|group| {
+        if let Ok(groups) = find_duplicates_in_group(group) {
+            let mut dups = duplicates.lock().unwrap();
+            dups.extend(groups);
+        }
+    });
+
+    Ok(duplicates.into_inner().unwrap())
+}
+
+/// Quick hash of first 4KB for fast grouping
+fn quick_hash_4kb(path: &Path) -> Result<String> {
+    let file = File::open(path)?;
+    let size = file.metadata()?.len();
+    
+    // Include size in hash to differentiate same-prefix files
+    let chunk_size = std::cmp::min(4096, size as usize);
+    
+    if size > MMAP_THRESHOLD {
+        let mmap = unsafe { Mmap::map(&file)? };
+        let hash = xxh3_64(&mmap[..chunk_size]);
+        return Ok(format!("{:016x}_{}", hash, size));
+    }
+    
+    let mut reader = BufReader::new(file);
+    let mut buffer = vec![0u8; chunk_size];
+    reader.read_exact(&mut buffer)?;
+    let hash = xxh3_64(&buffer);
+    Ok(format!("{:016x}_{}", hash, size))
+}
+
+/// Find duplicates within a group of files with matching quick hash
+fn find_duplicates_in_group(files: &[&FileInfo]) -> Result<Vec<DuplicateGroup>> {
+    if files.len() < 2 {
+        return Ok(Vec::new());
+    }
+
+    // For small groups (most common case), direct compare all pairs
+    if files.len() == 2 {
+        if files_are_equal(&files[0].path, &files[1].path).unwrap_or(false) {
+            let hash = quick_hash(&files[0].path).unwrap_or_else(|_| "unknown".to_string());
+            return Ok(vec![DuplicateGroup {
+                hash,
+                files: vec![files[0].clone(), files[1].clone()],
+                size: files[0].size,
+            }]);
+        }
+        return Ok(Vec::new());
+    }
+
+    // For larger groups, compare pairs
+    let mut groups: Vec<Vec<FileInfo>> = Vec::new();
+    let mut processed: std::collections::HashSet<usize> = std::collections::HashSet::new();
+
+    for i in 0..files.len() {
+        if processed.contains(&i) {
+            continue;
+        }
+
+        let mut current_group = vec![files[i].clone()];
+        processed.insert(i);
+
+        for j in (i + 1)..files.len() {
+            if processed.contains(&j) {
+                continue;
             }
+
+            if files_are_equal(&files[i].path, &files[j].path).unwrap_or(false) {
+                current_group.push(files[j].clone());
+                processed.insert(j);
+            }
+        }
+
+        if current_group.len() > 1 {
+            groups.push(current_group);
         }
     }
 
-    // Full hash the large files that had matching partial hashes
-    if !needs_full_hash.is_empty() {
-        let pb2 = ProgressBar::new(needs_full_hash.len() as u64);
-        pb2.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner:.green} Verifying [{bar:40.cyan/blue}] {pos}/{len}")
-                .unwrap()
-                .progress_chars("█▓░"),
-        );
-
-        needs_full_hash.par_iter().for_each(|file| {
-            if let Ok(hash) = hash_file_full(&file.path) {
-                let mut map = by_hash.lock().unwrap();
-                map.entry(hash).or_default().push((**file).clone());
-            }
-            pb2.inc(1);
-        });
-
-        pb2.finish_and_clear();
-    }
-
-    // Step 4: Build duplicate groups
-    let by_hash = by_hash.into_inner().unwrap();
-    let duplicates: Vec<DuplicateGroup> = by_hash
+    let result: Vec<DuplicateGroup> = groups
         .into_iter()
-        .filter(|(_, files)| files.len() > 1)
-        .map(|(hash, files)| {
+        .map(|files| {
             let size = files.first().map(|f| f.size).unwrap_or(0);
+            let hash = quick_hash(&files[0].path).unwrap_or_else(|_| "unknown".to_string());
             DuplicateGroup { hash, files, size }
         })
         .collect();
 
-    Ok(duplicates)
+    Ok(result)
 }
 
-/// Hash a file fully using xxHash3
-fn hash_file_full(path: &Path) -> Result<String> {
-    let file = File::open(path)?;
-    let mut reader = BufReader::new(file);
-    let mut buffer = Vec::new();
-    reader.read_to_end(&mut buffer)?;
+/// Compare two files for equality using memory-mapped access (very fast)
+fn files_are_equal(path1: &Path, path2: &Path) -> Result<bool> {
+    let file1 = File::open(path1)?;
+    let file2 = File::open(path2)?;
 
-    let hash = xxh3_64(&buffer);
-    Ok(format!("{:016x}", hash))
-}
+    let size1 = file1.metadata()?.len();
+    let size2 = file2.metadata()?.len();
 
-/// Hash only first and last 512KB of a file (for quick duplicate detection)
-fn hash_file_partial(path: &Path) -> Result<String> {
-    use std::io::Seek;
-    use std::io::SeekFrom;
-
-    let file = File::open(path)?;
-    let file_size = file.metadata()?.len();
-    let mut reader = BufReader::new(file);
-
-    let mut buffer = Vec::new();
-
-    // Read first chunk
-    let first_chunk_size = std::cmp::min(PARTIAL_HASH_CHUNK_SIZE as u64, file_size) as usize;
-    let mut first_chunk = vec![0u8; first_chunk_size];
-    reader.read_exact(&mut first_chunk)?;
-    buffer.extend_from_slice(&first_chunk);
-
-    // Read last chunk (if file is large enough and not overlapping with first chunk)
-    if file_size > PARTIAL_HASH_CHUNK_SIZE as u64 * 2 {
-        let last_chunk_start = file_size - PARTIAL_HASH_CHUNK_SIZE as u64;
-        reader.seek(SeekFrom::Start(last_chunk_start))?;
-        let mut last_chunk = vec![0u8; PARTIAL_HASH_CHUNK_SIZE];
-        reader.read_exact(&mut last_chunk)?;
-        buffer.extend_from_slice(&last_chunk);
+    // Different sizes = not equal
+    if size1 != size2 {
+        return Ok(false);
     }
 
-    let hash = xxh3_64(&buffer);
-    Ok(format!("p{:016x}", hash)) // prefix with 'p' to distinguish partial hashes
+    // Empty files are equal
+    if size1 == 0 {
+        return Ok(true);
+    }
+
+    // Use memory-mapped files for large files (much faster)
+    if size1 > MMAP_THRESHOLD {
+        // Safety: we're only reading, files are opened read-only
+        let mmap1 = unsafe { Mmap::map(&file1)? };
+        let mmap2 = unsafe { Mmap::map(&file2)? };
+        
+        // Direct byte comparison - very fast due to mmap
+        return Ok(mmap1[..] == mmap2[..]);
+    }
+
+    // For small files, use buffered reading
+    let mut reader1 = BufReader::new(file1);
+    let mut reader2 = BufReader::new(file2);
+    let mut buf1 = [0u8; COMPARE_CHUNK_SIZE];
+    let mut buf2 = [0u8; COMPARE_CHUNK_SIZE];
+
+    loop {
+        let n1 = reader1.read(&mut buf1)?;
+        let n2 = reader2.read(&mut buf2)?;
+
+        if n1 != n2 {
+            return Ok(false);
+        }
+
+        if n1 == 0 {
+            return Ok(true);
+        }
+
+        if buf1[..n1] != buf2[..n2] {
+            return Ok(false);
+        }
+    }
+}
+
+/// Quick hash for display purposes (not for comparison)
+fn quick_hash(path: &Path) -> Result<String> {
+    let file = File::open(path)?;
+    let size = file.metadata()?.len();
+    
+    // For small files, hash entire content
+    if size <= MMAP_THRESHOLD {
+        let mut reader = BufReader::new(file);
+        let mut buffer = Vec::new();
+        reader.read_to_end(&mut buffer)?;
+        return Ok(format!("{:016x}", xxh3_64(&buffer)));
+    }
+    
+    // For large files, hash first 64KB only (for display)
+    let mmap = unsafe { Mmap::map(&file)? };
+    let chunk_size = std::cmp::min(COMPARE_CHUNK_SIZE, mmap.len());
+    let hash = xxh3_64(&mmap[..chunk_size]);
+    Ok(format!("{:016x}", hash))
 }
 
 /// Display duplicate groups
@@ -582,7 +651,7 @@ mod tests {
         let mut file = File::create(&file_path).unwrap();
         write!(file, "hello world").unwrap();
 
-        let hash = hash_file_full(&file_path).unwrap();
+        let hash = quick_hash(&file_path).unwrap();
 
         // xxHash3 of "hello world" should be consistent
         assert!(!hash.is_empty());
