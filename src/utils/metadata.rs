@@ -186,10 +186,11 @@ impl AudioMetadata {
         })
     }
 
-    /// Get artist folder name for organization
+    /// Get artist folder name for organization (primary artist only, ignores featuring artists)
     pub fn artist_folder_name(&self) -> Option<String> {
         self.artist
             .as_ref()
+            .map(|a| extract_primary_artist(a))
             .map(|a| {
                 a.replace(['/', '\\', ':', '*', '?', '<', '>', '|'], "_")
                     .trim()
@@ -209,6 +210,57 @@ impl AudioMetadata {
             })
             .filter(|s| !s.is_empty())
     }
+}
+
+/// Extract the primary artist from an artist string, removing featuring artists
+/// Examples:
+/// - "Artist feat. Guest" -> "Artist"
+/// - "Artist, Guest1, Guest2" -> "Artist"
+/// - "Artist & Other" -> "Artist"
+/// - "Artist (with Someone)" -> "Artist"
+fn extract_primary_artist(artist: &str) -> String {
+    let artist = artist.trim();
+
+    // Common featuring patterns (case insensitive)
+    let patterns = [
+        " feat. ",
+        " feat ",
+        " ft. ",
+        " ft ",
+        " featuring ",
+        " & ",
+        " and ",
+        " with ",
+        " vs. ",
+        " vs ",
+        " x ",
+        ", ",
+        " / ",
+    ];
+
+    // Find the earliest occurrence of any pattern
+    let mut earliest_pos = artist.len();
+    for pattern in &patterns {
+        if let Some(pos) = artist.to_lowercase().find(&pattern.to_lowercase()) {
+            if pos > 0 && pos < earliest_pos {
+                earliest_pos = pos;
+            }
+        }
+    }
+
+    // Also check for parenthetical featuring (e.g., "Artist (feat. Someone)")
+    if let Some(pos) = artist.find('(') {
+        let inside = &artist[pos..];
+        let inside_lower = inside.to_lowercase();
+        if (inside_lower.contains("feat")
+            || inside_lower.contains("with")
+            || inside_lower.contains("ft."))
+            && pos > 0 && pos < earliest_pos {
+                earliest_pos = pos;
+            }
+    }
+
+    artist[..earliest_pos].trim().to_string()
 }
 
 /// Check if a file is a supported audio format
@@ -383,5 +435,37 @@ mod tests {
         assert!(meta.title.is_none());
         assert!(meta.genre.is_none());
         assert!(meta.year.is_none());
+    }
+
+    #[test]
+    fn test_extract_primary_artist_feat() {
+        assert_eq!(extract_primary_artist("We Came As Romans feat. Caleb Shomo"), "We Came As Romans");
+        assert_eq!(extract_primary_artist("Artist ft. Guest"), "Artist");
+        assert_eq!(extract_primary_artist("Artist featuring Someone"), "Artist");
+    }
+
+    #[test]
+    fn test_extract_primary_artist_comma() {
+        assert_eq!(
+            extract_primary_artist("We Came As Romans, Joshua Moore, Andrew Glass"),
+            "We Came As Romans"
+        );
+    }
+
+    #[test]
+    fn test_extract_primary_artist_ampersand() {
+        assert_eq!(extract_primary_artist("Artist & Other Artist"), "Artist");
+    }
+
+    #[test]
+    fn test_extract_primary_artist_parenthetical() {
+        assert_eq!(extract_primary_artist("Artist (feat. Guest)"), "Artist");
+        assert_eq!(extract_primary_artist("Artist (with Someone)"), "Artist");
+    }
+
+    #[test]
+    fn test_extract_primary_artist_no_featuring() {
+        assert_eq!(extract_primary_artist("Taylor Swift"), "Taylor Swift");
+        assert_eq!(extract_primary_artist("The Beatles"), "The Beatles");
     }
 }
