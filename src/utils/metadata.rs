@@ -255,9 +255,11 @@ fn extract_primary_artist(artist: &str) -> String {
         if (inside_lower.contains("feat")
             || inside_lower.contains("with")
             || inside_lower.contains("ft."))
-            && pos > 0 && pos < earliest_pos {
-                earliest_pos = pos;
-            }
+            && pos > 0
+            && pos < earliest_pos
+        {
+            earliest_pos = pos;
+        }
     }
 
     artist[..earliest_pos].trim().to_string()
@@ -439,7 +441,10 @@ mod tests {
 
     #[test]
     fn test_extract_primary_artist_feat() {
-        assert_eq!(extract_primary_artist("We Came As Romans feat. Caleb Shomo"), "We Came As Romans");
+        assert_eq!(
+            extract_primary_artist("We Came As Romans feat. Caleb Shomo"),
+            "We Came As Romans"
+        );
         assert_eq!(extract_primary_artist("Artist ft. Guest"), "Artist");
         assert_eq!(extract_primary_artist("Artist featuring Someone"), "Artist");
     }

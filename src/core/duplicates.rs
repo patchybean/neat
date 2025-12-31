@@ -115,16 +115,16 @@ pub fn find_duplicates(files: &[FileInfo]) -> Result<Vec<DuplicateGroup>> {
 fn quick_hash_4kb(path: &Path) -> Result<String> {
     let file = File::open(path)?;
     let size = file.metadata()?.len();
-    
+
     // Include size in hash to differentiate same-prefix files
     let chunk_size = std::cmp::min(4096, size as usize);
-    
+
     if size > MMAP_THRESHOLD {
         let mmap = unsafe { Mmap::map(&file)? };
         let hash = xxh3_64(&mmap[..chunk_size]);
         return Ok(format!("{:016x}_{}", hash, size));
     }
-    
+
     let mut reader = BufReader::new(file);
     let mut buffer = vec![0u8; chunk_size];
     reader.read_exact(&mut buffer)?;
@@ -214,7 +214,7 @@ fn files_are_equal(path1: &Path, path2: &Path) -> Result<bool> {
         // Safety: we're only reading, files are opened read-only
         let mmap1 = unsafe { Mmap::map(&file1)? };
         let mmap2 = unsafe { Mmap::map(&file2)? };
-        
+
         // Direct byte comparison - very fast due to mmap
         return Ok(mmap1[..] == mmap2[..]);
     }
@@ -247,7 +247,7 @@ fn files_are_equal(path1: &Path, path2: &Path) -> Result<bool> {
 fn quick_hash(path: &Path) -> Result<String> {
     let file = File::open(path)?;
     let size = file.metadata()?.len();
-    
+
     // For small files, hash entire content
     if size <= MMAP_THRESHOLD {
         let mut reader = BufReader::new(file);
@@ -255,7 +255,7 @@ fn quick_hash(path: &Path) -> Result<String> {
         reader.read_to_end(&mut buffer)?;
         return Ok(format!("{:016x}", xxh3_64(&buffer)));
     }
-    
+
     // For large files, hash first 64KB only (for display)
     let mmap = unsafe { Mmap::map(&file)? };
     let chunk_size = std::cmp::min(COMPARE_CHUNK_SIZE, mmap.len());
