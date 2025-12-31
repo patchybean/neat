@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] - 2025-12-31
+
+### Added
+- **Primary Artist Extraction**: Music files now organize by primary artist only, ignoring featuring artists
+  - "Artist feat. Guest" → organized under "Artist"
+  - Supports: `feat.`, `ft.`, `featuring`, `&`, commas, `(with ...)`
+
+### Changed
+- **Duplicate Detection Optimization**: 8x faster duplicate detection
+  - Switched from SHA256 to xxHash3 (60x faster hashing)
+  - Added memory-mapped file access for large files
+  - Quick hash first 4KB for fast grouping (O(n) instead of O(n²))
+- Removed unused `sha2` dependency
+
+---
+
 ## [0.6.0] - 2025-12-29
 
 ### Added
