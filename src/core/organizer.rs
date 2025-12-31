@@ -517,29 +517,7 @@ fn backup_file(path: &Path) -> anyhow::Result<PathBuf> {
     };
 
     fs::copy(path, &final_backup)?;
-
     Ok(final_backup)
-}
-
-/// Compute SHA256 hash of a file
-#[allow(dead_code)]
-fn hash_file(path: &Path) -> anyhow::Result<String> {
-    use sha2::{Digest, Sha256};
-    use std::io::Read;
-
-    let mut file = fs::File::open(path)?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0u8; 8192];
-
-    loop {
-        let bytes_read = file.read(&mut buffer)?;
-        if bytes_read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..bytes_read]);
-    }
-
-    Ok(format!("{:x}", hasher.finalize()))
 }
 
 /// Print organize results

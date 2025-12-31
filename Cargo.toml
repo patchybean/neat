@@ -22,7 +22,6 @@ walkdir = "2.4"
 colored = "2.1"
 indicatif = "0.17"
 dialoguer = "0.11"
-sha2 = "0.10"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
 memmap2 = "0.9"
 chrono = { version = "0.4", features = ["serde"] }
