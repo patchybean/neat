@@ -15,7 +15,7 @@ A smart CLI tool to organize and clean up messy directories, built in Rust.
 - **Organize by Extension** - Group files by their extensions
 - **EXIF Metadata** - Organize photos by camera model or date taken (from EXIF data)
 - **Audio Metadata** - Organize music by artist or album (from ID3/audio tags)
-- **Find Duplicates** - Detect duplicate files using SHA256 content hashing
+- **Find Duplicates** - Detect duplicate files using fast xxHash3 content hashing
 - **Find Similar Images** - Detect visually similar images using perceptual hashing
 - **Clean Old Files** - Remove files older than a specified duration
 - **Watch Mode** - Auto-organize new files as they appear
