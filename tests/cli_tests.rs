@@ -167,3 +167,102 @@ fn test_size_filter() {
     assert!(dir.path().join("Documents").join("small.txt").exists());
     assert!(large_file.exists());
 }
+
+#[test]
+fn test_ignore_pattern() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("keep.txt"), "content").unwrap();
+    fs::write(dir.path().join("ignore.log"), "logs").unwrap();
+
+    let mut cmd = Command::cargo_bin("neatcli").unwrap();
+    cmd.arg("organize")
+        .arg(dir.path())
+        .arg("--execute")
+        .arg("-I")
+        .arg("*.log")
+        .assert()
+        .success();
+
+    // keep.txt should be organized, ignore.log should stay
+    assert!(dir.path().join("Documents").join("keep.txt").exists());
+    assert!(dir.path().join("ignore.log").exists());
+}
+
+#[test]
+fn test_date_filter() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("file.txt"), "content").unwrap();
+
+    // Filter with future date - no files should match
+    let mut cmd = Command::cargo_bin("neatcli").unwrap();
+    cmd.arg("organize")
+        .arg(dir.path())
+        .arg("--after")
+        .arg("2099-01-01")
+        .assert()
+        .success();
+
+    // File should not be moved (created before 2099)
+    assert!(dir.path().join("file.txt").exists());
+}
+
+#[test]
+fn test_template_flag() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("photo.jpg"), "fake image").unwrap();
+
+    let mut cmd = Command::cargo_bin("neatcli").unwrap();
+    cmd.arg("organize")
+        .arg(dir.path())
+        .arg("--template")
+        .arg("{category}/{ext}/{filename}")
+        .arg("--execute")
+        .assert()
+        .success();
+
+    // Should be organized by template: Images/jpg/photo.jpg
+    assert!(dir.path().join("Images").join("jpg").join("photo.jpg").exists());
+}
+
+#[test]
+fn test_min_size_filter() {
+    let dir = tempdir().unwrap();
+    let small_file = dir.path().join("tiny.txt");
+    let large_file = dir.path().join("big.bin");
+
+    fs::write(&small_file, "x").unwrap(); // 1 byte
+    let f = File::create(&large_file).unwrap();
+    f.set_len(1024 * 1024).unwrap(); // 1MB
+
+    // Organize only files >= 500KB
+    let mut cmd = Command::cargo_bin("neatcli").unwrap();
+    cmd.arg("organize")
+        .arg(dir.path())
+        .arg("--execute")
+        .arg("--min-size")
+        .arg("500KB")
+        .assert()
+        .success();
+
+    // Small file stays, large file moved
+    assert!(small_file.exists());
+    assert!(dir.path().join("Other").join("big.bin").exists());
+}
+
+#[test]
+fn test_clean_dry_run() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("file.txt"), "content").unwrap();
+
+    let mut cmd = Command::cargo_bin("neatcli").unwrap();
+    cmd.arg("clean")
+        .arg(dir.path())
+        .arg("--older-than")
+        .arg("0d")
+        .assert()
+        .success();
+
+    // File should still exist (dry-run)
+    assert!(dir.path().join("file.txt").exists());
+}
+

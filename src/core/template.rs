@@ -213,4 +213,102 @@ mod tests {
         );
         assert_eq!(get_preset_template("unknown"), None);
     }
+
+    // ==================== Additional template edge cases ====================
+
+    #[test]
+    fn test_render_empty_template() {
+        let vars = HashMap::new();
+        let engine = TemplateEngine::new(vars);
+        let result = engine.render("");
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_render_no_variables() {
+        let vars = HashMap::new();
+        let engine = TemplateEngine::new(vars);
+        let result = engine.render("just/a/path");
+        assert_eq!(result, "just/a/path");
+    }
+
+    #[test]
+    fn test_render_multiple_same_variable() {
+        let mut vars = HashMap::new();
+        vars.insert("year".to_string(), "2024".to_string());
+
+        let engine = TemplateEngine::new(vars);
+        let result = engine.render("{year}/archive/{year}");
+
+        assert_eq!(result, "2024/archive/2024");
+    }
+
+    #[test]
+    fn test_render_consecutive_slashes() {
+        let mut vars = HashMap::new();
+        vars.insert("a".to_string(), "folder".to_string());
+
+        let engine = TemplateEngine::new(vars);
+        let result = engine.render("{a}//subfolder");
+
+        // Should clean up double slashes
+        assert!(!result.contains("//"));
+    }
+
+    #[test]
+    fn test_render_leading_trailing_slashes() {
+        let mut vars = HashMap::new();
+        vars.insert("folder".to_string(), "test".to_string());
+
+        let engine = TemplateEngine::new(vars);
+        let result = engine.render("/{folder}/");
+
+        // Should trim leading/trailing slashes
+        assert_eq!(result, "test");
+    }
+
+    #[test]
+    fn test_get_set_variable() {
+        let mut engine = TemplateEngine::new(HashMap::new());
+
+        assert!(engine.get("custom").is_none());
+
+        engine.set("custom".to_string(), "value".to_string());
+
+        assert_eq!(engine.get("custom"), Some(&"value".to_string()));
+    }
+
+    #[test]
+    fn test_list_variables() {
+        let mut vars = HashMap::new();
+        vars.insert("a".to_string(), "1".to_string());
+        vars.insert("b".to_string(), "2".to_string());
+
+        let engine = TemplateEngine::new(vars);
+        let list = engine.list_variables();
+
+        assert_eq!(list.len(), 2);
+    }
+
+    #[test]
+    fn test_preset_case_insensitive() {
+        assert!(get_preset_template("BY-TYPE").is_some());
+        assert!(get_preset_template("By-Date").is_some());
+        assert!(get_preset_template("PHOTOS").is_some());
+    }
+
+    #[test]
+    fn test_preset_all_variants() {
+        // Test all preset names work
+        assert!(get_preset_template("type").is_some());
+        assert!(get_preset_template("date").is_some());
+        assert!(get_preset_template("extension").is_some());
+        assert!(get_preset_template("ext").is_some());
+        assert!(get_preset_template("camera").is_some());
+        assert!(get_preset_template("date-taken").is_some());
+        assert!(get_preset_template("artist").is_some());
+        assert!(get_preset_template("album").is_some());
+        assert!(get_preset_template("music").is_some());
+    }
 }
+

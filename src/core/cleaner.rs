@@ -397,4 +397,65 @@ mod tests {
         let age = format_age(Duration::from_secs(1209600)); // 2 weeks
         assert_eq!(age, "2w ago");
     }
+
+    // ==================== Additional parse_duration edge cases ====================
+
+    #[test]
+    fn test_parse_duration_zero() {
+        let d = parse_duration("0d").unwrap();
+        assert_eq!(d.as_secs(), 0);
+    }
+
+    #[test]
+    fn test_parse_duration_uppercase() {
+        // Should be case-insensitive
+        let d = parse_duration("7D").unwrap();
+        assert_eq!(d, Duration::from_secs(7 * 86400));
+    }
+
+    #[test]
+    fn test_parse_duration_large_value() {
+        let d = parse_duration("365d").unwrap();
+        assert_eq!(d.as_secs(), 365 * 86400);
+    }
+
+    #[test]
+    fn test_parse_duration_negative_fails() {
+        assert!(parse_duration("-7d").is_err());
+    }
+
+    // ==================== Additional format_age edge cases ====================
+
+    #[test]
+    fn test_format_age_zero() {
+        let age = format_age(Duration::from_secs(0));
+        assert_eq!(age, "0m ago");
+    }
+
+    #[test]
+    fn test_format_age_one_second() {
+        let age = format_age(Duration::from_secs(1));
+        assert_eq!(age, "0m ago");
+    }
+
+    #[test]
+    fn test_format_age_boundary_hour() {
+        // Just under 1 hour
+        let age = format_age(Duration::from_secs(3599));
+        assert_eq!(age, "59m ago");
+        // Exactly 1 hour
+        let age = format_age(Duration::from_secs(3600));
+        assert_eq!(age, "1h ago");
+    }
+
+    #[test]
+    fn test_format_age_boundary_day() {
+        // Just under 1 day
+        let age = format_age(Duration::from_secs(86399));
+        assert_eq!(age, "23h ago");
+        // Exactly 1 day
+        let age = format_age(Duration::from_secs(86400));
+        assert_eq!(age, "1d ago");
+    }
 }
+

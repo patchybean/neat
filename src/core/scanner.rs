@@ -455,4 +455,102 @@ mod tests {
         assert_eq!(info.name, "Makefile");
         assert_eq!(info.extension, None);
     }
+
+    // ==================== parse_size tests ====================
+
+    #[test]
+    fn test_parse_size_valid_units() {
+        assert_eq!(parse_size("10MB").unwrap(), 10 * 1024 * 1024);
+        assert_eq!(
+            parse_size("1.5GB").unwrap(),
+            (1.5 * 1024.0 * 1024.0 * 1024.0) as u64
+        );
+        assert_eq!(parse_size("500KB").unwrap(), 500 * 1024);
+        assert_eq!(parse_size("100B").unwrap(), 100);
+        assert_eq!(
+            parse_size("1TB").unwrap(),
+            1024_u64 * 1024 * 1024 * 1024
+        );
+    }
+
+    #[test]
+    fn test_parse_size_short_units() {
+        assert_eq!(parse_size("10M").unwrap(), 10 * 1024 * 1024);
+        assert_eq!(parse_size("1G").unwrap(), 1024 * 1024 * 1024);
+        assert_eq!(parse_size("500K").unwrap(), 500 * 1024);
+        assert_eq!(parse_size("1T").unwrap(), 1024_u64 * 1024 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_parse_size_edge_cases() {
+        // Empty string
+        assert!(parse_size("").is_err());
+        // Invalid string
+        assert!(parse_size("invalid").is_err());
+        // Negative number
+        assert!(parse_size("-10MB").is_err());
+        // Whitespace handling
+        assert_eq!(parse_size("  10MB  ").unwrap(), 10 * 1024 * 1024);
+        // No unit (defaults to bytes)
+        assert_eq!(parse_size("1024").unwrap(), 1024);
+        // Zero
+        assert_eq!(parse_size("0").unwrap(), 0);
+        assert_eq!(parse_size("0MB").unwrap(), 0);
+        // Lowercase
+        assert_eq!(parse_size("10mb").unwrap(), 10 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_parse_size_float_values() {
+        assert_eq!(parse_size("0.5GB").unwrap(), (0.5 * 1024.0 * 1024.0 * 1024.0) as u64);
+        assert_eq!(parse_size("2.5MB").unwrap(), (2.5 * 1024.0 * 1024.0) as u64);
+    }
+
+    // ==================== parse_date tests ====================
+
+    #[test]
+    fn test_parse_date_dash_format() {
+        let result = parse_date("2024-12-25");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_date_slash_format() {
+        let result = parse_date("2024/12/25");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_date_invalid_format() {
+        // Unsupported format
+        assert!(parse_date("2024.12.25").is_err());
+        assert!(parse_date("25-12-2024").is_err());
+        assert!(parse_date("12/25/2024").is_err());
+    }
+
+    #[test]
+    fn test_parse_date_invalid_dates() {
+        // Empty string
+        assert!(parse_date("").is_err());
+        // Not a date
+        assert!(parse_date("not-a-date").is_err());
+        // Invalid month
+        assert!(parse_date("2024-13-01").is_err());
+        // Invalid day
+        assert!(parse_date("2024-02-30").is_err());
+        assert!(parse_date("2024-04-31").is_err());
+    }
+
+    #[test]
+    fn test_parse_date_leap_year() {
+        // Valid leap year date
+        assert!(parse_date("2024-02-29").is_ok());
+        // Invalid non-leap year date
+        assert!(parse_date("2023-02-29").is_err());
+    }
+
+    #[test]
+    fn test_parse_date_whitespace() {
+        assert!(parse_date("  2024-12-25  ").is_ok());
+    }
 }
